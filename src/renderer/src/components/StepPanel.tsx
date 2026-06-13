@@ -80,6 +80,11 @@ export function StepPanel() {
         </div>
       </div>
 
+      <div className='px-4 py-3'>
+        <Button variant="outline" size="sm" className="w-full justify-center gap-2 h-8 text-xs">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
       {/* Step List */}
       <ScrollArea className="flex-1">
         {steps.length === 0 ? (
@@ -147,10 +152,9 @@ export function StepPanel() {
       </ScrollArea>
 
       {/* Bottom Toolbar */}
-      <div className="flex h-[40px] items-center justify-start border-t px-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Plus className="h-4 w-4" />
-        </Button>
+      <div className="flex h-[40px] items-center justify-between border-t px-3 text-[12px]">
+        <span className="text-muted-foreground/50">● Step 1/5</span>
+        <span className="text-muted-foreground/50">Status: Success</span>
       </div>
     </aside>
   )
