@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { NewScriptDialog } from '@/components/NewScriptDialog'
 import { SettingsDialog } from '@/components/SettingsDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   FileCode,
   FolderClosed,
@@ -20,7 +21,7 @@ import {
   Trash2,
 } from 'lucide-react'
 
-function ScriptFolder({ folder }: { folder: Script }) {
+function ScriptFolder({ folder, onDelete }: { folder: Script; onDelete: (script: Script) => void }) {
   const { expandedFolders, toggleFolder } = useScriptStore()
   const isExpanded = expandedFolders.has(folder.id)
   const { scripts } = useScriptStore()
@@ -50,7 +51,7 @@ function ScriptFolder({ folder }: { folder: Script }) {
       {isExpanded && (
         <div className="ml-2 space-y-0.5 mt-0.5">
           {childScripts.map((script) => (
-            <ScriptItem key={script.id} script={script} />
+            <ScriptItem key={script.id} script={script} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -58,7 +59,7 @@ function ScriptFolder({ folder }: { folder: Script }) {
   )
 }
 
-function ScriptItem({ script }: { script: Script }) {
+function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: Script) => void }) {
   const { currentScriptId, setCurrentScript } = useScriptStore()
   const isSelected = currentScriptId === script.id
 
@@ -91,7 +92,7 @@ function ScriptItem({ script }: { script: Script }) {
             className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={(e) => {
               e.stopPropagation()
-              // TODO: delete script
+              onDelete(script)
             }}
             title="删除脚本"
           >
@@ -107,11 +108,18 @@ export function ScriptPanel() {
   const { scripts } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Script | null>(null)
 
   const folders = scripts.filter((s) => s.type === 'folder')
   const rootScripts = scripts.filter(
     (s) => s.type === 'script' && s.parentId === null
   )
+
+  const handleDelete = () => {
+    if (!deleteTarget) return
+    // TODO: actually remove from store/persistence
+    setDeleteTarget(null)
+  }
 
   return (
     <aside className="flex w-[240px] min-w-[240px] flex-col border-r bg-card">
@@ -138,12 +146,12 @@ export function ScriptPanel() {
       <ScrollArea className="flex-1 px-2">
         <div className="py-1 space-y-1">
           {folders.map((folder) => (
-            <ScriptFolder key={folder.id} folder={folder} />
+            <ScriptFolder key={folder.id} folder={folder} onDelete={setDeleteTarget} />
           ))}
           {rootScripts.length > 0 && (
             <div className="space-y-0.5 pt-1">
               {rootScripts.map((script) => (
-                <ScriptItem key={script.id} script={script} />
+                <ScriptItem key={script.id} script={script} onDelete={setDeleteTarget} />
               ))}
             </div>
           )}
@@ -175,6 +183,17 @@ export function ScriptPanel() {
           <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
         </div>
       </div>
+
+      {/* Delete confirm dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        title="删除脚本"
+        description={`确定要删除 "${deleteTarget?.name}" 吗？此操作不可撤销。`}
+        confirmText="删除"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </aside>
   )
 }
