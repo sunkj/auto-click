@@ -3,7 +3,6 @@ import { useScriptStore } from '@/stores/scriptStore'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { FolderClosed } from 'lucide-react'
 

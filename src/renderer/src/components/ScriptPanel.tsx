@@ -17,7 +17,6 @@ import {
   Settings,
   ChevronRight,
   ChevronDown,
-  Play,
   Trash2,
 } from 'lucide-react'
 

@@ -1,9 +1,7 @@
 import { useDeviceStore } from '@/stores/deviceStore'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
   Smartphone,
-  Monitor,
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDown,

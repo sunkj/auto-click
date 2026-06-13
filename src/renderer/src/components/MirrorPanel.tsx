@@ -8,11 +8,10 @@ import {
   Monitor,
   Wifi,
   ArrowUpDown,
-  Play,
-  Square,
   RefreshCw,
   Crosshair,
   PanelLeftClose,
+  Square,
 } from 'lucide-react'
 
 interface MirrorPanelProps {
@@ -22,7 +21,6 @@ interface MirrorPanelProps {
 export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
   const { isConnected, deviceInfo, connect, disconnect } = useDeviceStore()
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
-  const [isRunning, setIsRunning] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -72,10 +70,10 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
             <Button
               variant="ghost"
               size="sm"
-              className={`h-6 px-2 text-xs gap-1 ${isRunning ? 'text-green-500' : ''}`}
+              className="h-6 px-2 text-xs gap-1"
               onClick={connect}
-              disabled={isRunning || !isConnected}
-              title="运行脚本"
+              disabled={isConnected}
+              title="连接设备"
             >
               <Smartphone className="h-3 w-3" />
               连接
@@ -85,8 +83,8 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
               size="sm"
               className="h-6 px-2 text-xs gap-1 text-destructive"
               onClick={disconnect}
-              disabled={!isRunning}
-              title="停止"
+              disabled={!isConnected}
+              title="断开连接"
             >
               <Square className="h-3 w-3" />
               断开
@@ -167,16 +165,7 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
                 </div>
               </div>
 
-              {/* Running indicator */}
-              {isRunning && (
-                <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                  </span>
-                  <span className="text-[10px] text-red-500 font-medium">REC</span>
-                </div>
-              )}
+
             </div>
           </div>
         )}
