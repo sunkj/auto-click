@@ -12,9 +12,14 @@ import {
   Square,
   RefreshCw,
   Crosshair,
+  PanelLeftClose,
 } from 'lucide-react'
 
-export function MirrorPanel() {
+interface MirrorPanelProps {
+  onTogglePanels?: () => void
+}
+
+export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
   const { isConnected, deviceInfo, connect, disconnect } = useDeviceStore()
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isRunning, setIsRunning] = useState(false)
@@ -34,6 +39,21 @@ export function MirrorPanel() {
       <div className="flex h-[40px] items-center justify-between border-b px-3 text-xs text-muted-foreground">
         {/* Left: connection info */}
         <div className="flex items-center gap-3">
+          {/* Collapse/Expand Toggle */}
+          {onTogglePanels && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={onTogglePanels}
+                title="收起侧边栏"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+            </>
+          )}
           <div className="flex items-center gap-1.5">
             <Monitor className="h-3.5 w-3.5" />
             <span>投屏</span>
