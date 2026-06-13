@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { NewScriptDialog } from '@/components/NewScriptDialog'
+import { SettingsDialog } from '@/components/SettingsDialog'
 import {
   FileCode,
   FolderClosed,
@@ -106,6 +107,7 @@ function ScriptItem({ script }: { script: Script }) {
 export function ScriptPanel() {
   const { scripts } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const folders = scripts.filter((s) => s.type === 'folder')
   const rootScripts = scripts.filter(
@@ -168,9 +170,10 @@ export function ScriptPanel() {
         </div>
         <div className="flex h-[40px] items-center justify-between px-2 py-1 border-t">
           <span className="text-[10px] text-muted-foreground">v1.0.0</span>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-3 w-3" />
           </Button>
+          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
         </div>
       </div>
     </aside>

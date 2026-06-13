@@ -11,7 +11,7 @@ const DialogContext = React.createContext<DialogContextType>({
   onOpenChange: () => {},
 })
 
-function Dialog({ open, onOpenChange, children }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }) {
+function Dialog({ open, onOpenChange, children, className }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode; className?: string }) {
   if (!open) return null
   return (
     <DialogContext.Provider value={{ open, onOpenChange }}>
@@ -22,7 +22,7 @@ function Dialog({ open, onOpenChange, children }: { open: boolean; onOpenChange:
           onClick={() => onOpenChange(false)}
         />
         {/* Dialog Content */}
-        <div className="relative z-50 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg animate-in fade-in-0 zoom-in-95">
+        <div className={cn('relative z-50 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg animate-in fade-in-0 zoom-in-95', className)}>
           {children}
         </div>
       </div>
