@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useScriptStore, Step } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -11,14 +12,13 @@ import {
   Trash2,
   StepForward,
   Plus,
-  Settings2,
-  Monitor,
   FileCode,
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
   Edit2,
 } from 'lucide-react'
+import { NewStepDialog } from '@/components/NewStepDialog'
 
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   click: MousePointerClick,
@@ -29,6 +29,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export function StepPanel() {
   const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript } = useScriptStore()
+  const [stepDialogOpen, setStepDialogOpen] = useState(false)
   const currentScript = scripts.find((s) => s.id === currentScriptId)
 
   if (!currentScriptId || !currentScript) {
@@ -81,10 +82,17 @@ export function StepPanel() {
       </div>
 
       <div className='px-4 py-3'>
-        <Button variant="outline" size="sm" className="w-full justify-center gap-2 h-8 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-center gap-2 h-8 text-xs"
+          onClick={() => setStepDialogOpen(true)}
+        >
           <Plus className="h-3.5 w-3.5" />
+          添加步骤
         </Button>
       </div>
+      <NewStepDialog open={stepDialogOpen} onOpenChange={setStepDialogOpen} />
       {/* Step List */}
       <ScrollArea className="flex-1">
         {steps.length === 0 ? (
