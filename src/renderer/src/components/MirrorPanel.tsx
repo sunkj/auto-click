@@ -53,7 +53,7 @@ export function MirrorPanel() {
               variant="ghost"
               size="sm"
               className={`h-6 px-2 text-xs gap-1 ${isRunning ? 'text-green-500' : ''}`}
-              onClick={() => setIsRunning(true)}
+              onClick={connect}
               disabled={isRunning || !isConnected}
               title="运行脚本"
             >
@@ -134,7 +134,7 @@ export function MirrorPanel() {
           </div>
         ) : (
           /* Connected State - Screen Mirroring Canvas */
-          <div className="flex flex-col items-center gap-4 p-4">
+          <div className="flex flex-col items-center gap-4 px-4 py-2">
             <div
               className="relative w-[360px] h-[720px] rounded-lg bg-card border shadow-inner overflow-hidden cursor-crosshair"
               onMouseMove={handleMouseMove}
