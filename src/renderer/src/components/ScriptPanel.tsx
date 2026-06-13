@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useScriptStore, Script } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { NewScriptDialog } from '@/components/NewScriptDialog'
 import {
   FileCode,
   FolderClosed,
@@ -103,6 +105,7 @@ function ScriptItem({ script }: { script: Script }) {
 
 export function ScriptPanel() {
   const { scripts } = useScriptStore()
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const folders = scripts.filter((s) => s.type === 'folder')
   const rootScripts = scripts.filter(
@@ -118,11 +121,17 @@ export function ScriptPanel() {
 
       {/* New Script Button */}
       <div className="px-3 pt-3 pb-2">
-        <Button variant="outline" size="sm" className="w-full justify-start gap-2 h-8 text-xs">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2 h-8 text-xs"
+          onClick={() => setDialogOpen(true)}
+        >
           <FilePlus className="h-3.5 w-3.5" />
           新建脚本
         </Button>
       </div>
+      <NewScriptDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
       {/* Script List */}
       <ScrollArea className="flex-1 px-2">
