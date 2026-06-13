@@ -1,6 +1,7 @@
 import { useScriptStore, Step } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -12,57 +13,69 @@ import {
   Plus,
   Settings2,
   Monitor,
+  FileCode,
+  MousePointerClick,
+  Keyboard,
+  ArrowUpDown,
+  Edit2,
 } from 'lucide-react'
 
-const stepIcons: Record<string, typeof CircleDot> = {
-  click: CircleDot,
-  type: SquarePen,
-  swipe: Monitor,
-  script: FileIcon,
-}
-
-function FileIcon({ className }: { className?: string }) {
-  return <SquarePen className={className} />
+const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  click: MousePointerClick,
+  type: Keyboard,
+  swipe: ArrowUpDown,
+  script: FileCode,
 }
 
 export function StepPanel() {
-  const { scripts, currentScriptId, selectedStepId, setSelectedStep } = useScriptStore()
+  const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript } = useScriptStore()
   const currentScript = scripts.find((s) => s.id === currentScriptId)
 
   if (!currentScriptId || !currentScript) {
     return (
       <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-xs text-muted-foreground">请选择一个脚本</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+          <FileCode className="h-10 w-10 text-muted-foreground/30" />
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">未选择脚本</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">
+              请从左侧脚本列表中选择一个脚本<br />以查看其步骤详情
+            </p>
+          </div>
         </div>
       </aside>
     )
   }
 
-  const steps = currentScript.steps || []
+  const steps = getStepsForScript(currentScriptId)
 
   return (
     <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
       {/* Top Toolbar */}
-      <div className="flex h-[56px] items-center justify-between border-b px-3">
+      <div className="flex h-[40px] items-center justify-between border-b px-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-7 w-7">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium truncate max-w-[140px]">
-            {currentScript.name.replace('.js', '')}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium truncate max-w-[140px]">
+              {currentScript.name.replace('.js', '')}
+            </span>
+            <Badge variant="secondary" className="h-4 px-1 text-[10px] font-normal">
+              {steps.length} 步
+            </Badge>
+          </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="运行全部">
             <Play className="h-4 w-4 text-green-500" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="录制">
             <CircleDot className="h-4 w-4 text-red-500" />
           </Button>
           <div className="mx-1 h-4 w-px bg-border" />
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Settings2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑">
+            <Edit2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -70,8 +83,9 @@ export function StepPanel() {
       {/* Step List */}
       <ScrollArea className="flex-1">
         {steps.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-muted-foreground">暂无步骤</p>
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
+            <MousePointerClick className="h-6 w-6 text-muted-foreground/30" />
+            <p className="text-xs text-muted-foreground">该脚本暂无步骤</p>
           </div>
         ) : (
           <div className="py-1">
@@ -107,7 +121,7 @@ export function StepPanel() {
 
                   {/* Operations Row (when selected) */}
                   {isSelected && (
-                    <div className="flex items-center gap-1 px-3 pb-2 pl-[60px] border-b border-border/50">
+                    <div className="flex items-center gap-1 px-3 pb-2 pl-[60px] pt-2 border-b border-border/50">
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2">
                         <SquarePen className="h-3 w-3" />
                         编辑
@@ -133,7 +147,7 @@ export function StepPanel() {
       </ScrollArea>
 
       {/* Bottom Toolbar */}
-      <div className="flex h-[48px] items-center justify-end border-t px-3">
+      <div className="flex h-[40px] items-center justify-start border-t px-3">
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <Plus className="h-4 w-4" />
         </Button>
