@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ChevronDown,
   Play,
+  Trash2,
 } from 'lucide-react'
 
 function ScriptFolder({ folder }: { folder: Script }) {
@@ -58,12 +59,11 @@ function ScriptFolder({ folder }: { folder: Script }) {
 function ScriptItem({ script }: { script: Script }) {
   const { currentScriptId, setCurrentScript } = useScriptStore()
   const isSelected = currentScriptId === script.id
-  const steps = script.steps || []
 
   return (
     <Card
       className={cn(
-        'cursor-pointer border transition-all duration-150',
+        'cursor-pointer border transition-all duration-150 group',
         isSelected
           ? 'border-primary/50 bg-accent shadow-sm'
           : 'border-transparent bg-transparent hover:bg-accent/50'
@@ -83,25 +83,19 @@ function ScriptItem({ script }: { script: Script }) {
             {script.name}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          {steps.length > 0 && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {steps.length}
-            </span>
-          )}
+        {/* Delete icon — shown only when selected */}
+        {isSelected && (
           <button
-            className={cn(
-              'h-5 w-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity',
-              'hover:bg-background/80 text-muted-foreground hover:text-foreground'
-            )}
+            className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={(e) => {
               e.stopPropagation()
-              setCurrentScript(script.id)
+              // TODO: delete script
             }}
+            title="删除脚本"
           >
-            <Play className="h-3 w-3" />
+            <Trash2 className="h-3 w-3" />
           </button>
-        </div>
+        )}
       </div>
     </Card>
   )
