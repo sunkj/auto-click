@@ -69,12 +69,14 @@ export interface UpdateScriptParams {
 export interface CreateStepParams {
   type: StepType
   data: StepData
+  name?: string
 }
 
 /** 更新步骤时的请求参数 */
 export interface UpdateStepParams {
   type?: StepType
   data?: StepData
+  name?: string
 }
 
 /** 从文件加载脚本的返回结构 */

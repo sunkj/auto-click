@@ -206,7 +206,7 @@ export function StepPanel() {
                     </div>
                     {/* Step Content */}
                     <div className="flex-1 min-w-0 mt-[-2px]">
-                      <div className="text-sm font-medium">{stepLabels[step.type] || step.type}</div>
+                      <div className="text-sm font-medium truncate">{step.name || stepLabels[step.type] || step.type}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {step.description}
                       </div>

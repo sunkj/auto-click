@@ -25,6 +25,7 @@ export interface RendererStep {
   type: 'click' | 'type' | 'swipe' | 'script'
   params: Record<string, string>
   description: string
+  name: string
 }
 
 export interface RendererScript {
@@ -95,6 +96,7 @@ export function stepEntityToRenderer(step: StepEntity): RendererStep {
     type: step.type as RendererStep['type'],
     params,
     description,
+    name: step.name || '',
   }
 }
 
@@ -148,9 +150,10 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
   }
 }
 
-export function rendererFormToCreateStep(type: string, params: Record<string, string>): CreateStepParams {
+export function rendererFormToCreateStep(type: string, params: Record<string, string>, name?: string): CreateStepParams {
   return {
     type: type as CreateStepParams['type'],
     data: rendererParamsToStepData(type, params),
+    name,
   }
 }

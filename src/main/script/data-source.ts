@@ -41,6 +41,7 @@ const CREATE_TABLES_SQL = [
     "script_id" text NOT NULL,
     "step_index" integer NOT NULL,
     "type" text NOT NULL,
+    "name" text,
     "data" text NOT NULL,
     "created_at" datetime NOT NULL DEFAULT (datetime('now')),
     "updated_at" datetime NOT NULL DEFAULT (datetime('now')),
@@ -80,6 +81,15 @@ export async function initializeDatabase(): Promise<void> {
       for (const sql of CREATE_TABLES_SQL) {
         await queryRunner.query(sql)
       }
+
+      // 迁移：为已有数据库添加 name 列（幂等执行）
+      try {
+        await queryRunner.query(`ALTER TABLE "steps" ADD COLUMN "name" text`)
+        console.log('[Database] 迁移: steps.name 列已添加')
+      } catch {
+        // 列已存在则忽略
+      }
+
       console.log('[Database] 表结构已就绪')
     } finally {
       await queryRunner.release()

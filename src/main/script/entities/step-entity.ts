@@ -27,6 +27,9 @@ export class StepEntity {
   @Column('text')
   type!: string
 
+  @Column('text', { nullable: true })
+  name?: string
+
   @Column('text')
   data!: string
 

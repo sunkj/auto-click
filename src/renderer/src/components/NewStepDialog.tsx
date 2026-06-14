@@ -38,10 +38,18 @@ function paramsFromStep(step: Step): Record<string, string> {
   return p
 }
 
+const typeLabels: Record<StepType, string> = {
+  click: '点击',
+  type: '输入',
+  swipe: '滑动',
+  longpress: '长按',
+}
+
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
   const isEditMode = !!editStep
 
   const [stepType, setStepType] = useState<StepType>(editStep?.type ?? 'click')
+  const [stepName, setStepName] = useState<string>(editStep?.name || typeLabels[editStep?.type as StepType] || '点击')
   const [params, setParams] = useState<Record<string, string>>(
     editStep ? paramsFromStep(editStep) : {
       x: '',
@@ -58,12 +66,23 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   useEffect(() => {
     if (editStep) {
       setStepType(editStep.type)
+      setStepName(editStep.name || typeLabels[editStep.type as StepType] || '')
       setParams(paramsFromStep(editStep))
     } else {
       setStepType('click')
+      setStepName('点击')
       setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0' })
     }
   }, [editStep])
+
+  const handleTypeChange = (type: StepType) => {
+    // 如果名称还是旧的类型名称，则跟随类型更新
+    const oldLabel = typeLabels[stepType]
+    if (stepName === oldLabel || !stepName) {
+      setStepName(typeLabels[type])
+    }
+    setStepType(type)
+  }
 
   const handleParamChange = (key: string, value: string) => {
     setParams((prev) => ({ ...prev, [key]: value }))
@@ -77,7 +96,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       const stepIdNum = Number(editStep.id)
       if (!isNaN(stepIdNum)) {
         try {
-          await store.updateStep(stepIdNum, stepType, params)
+          await store.updateStep(stepIdNum, stepType, params, stepName || undefined)
         } catch (error) {
           console.error('[NewStepDialog] 更新步骤失败:', error)
         }
@@ -87,7 +106,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       const { currentScriptId } = store
       if (!currentScriptId) return
       try {
-        await store.addStep(currentScriptId, stepType, params, undefined)
+        await store.addStep(currentScriptId, stepType, params, undefined, stepName || undefined)
       } catch (error) {
         console.error('[NewStepDialog] 添加步骤失败:', error)
       }
@@ -226,7 +245,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
           return (
             <button
               key={type}
-              onClick={() => setStepType(type)}
+              onClick={() => handleTypeChange(type)}
               className={cn(
                 'flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-colors',
                 isActive
@@ -241,6 +260,17 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
             </button>
           )
         })}
+      </div>
+
+      {/* Step Name */}
+      <div className="space-y-1 mb-4">
+        <label className="text-xs text-muted-foreground">步骤名称</label>
+        <Input
+          placeholder="输入步骤名称..."
+          value={stepName}
+          onChange={(e) => setStepName(e.target.value)}
+          className="h-8 text-sm"
+        />
       </div>
 
       {/* Parameters Form */}

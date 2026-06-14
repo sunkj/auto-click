@@ -11,6 +11,7 @@ export interface Step {
   type: 'click' | 'type' | 'swipe' | 'script' | 'longpress'
   params: Record<string, string>
   description: string
+  name: string
 }
 
 export interface Script {
@@ -64,8 +65,8 @@ interface ScriptStore {
 
   // 步骤操作
   getStepsForScript: (scriptId: string) => Step[]
-  addStep: (scriptId: string, type: string, params: Record<string, string>, insertIndex?: number) => Promise<void>
-  updateStep: (stepId: number, type: string, params: Record<string, string>) => Promise<void>
+  addStep: (scriptId: string, type: string, params: Record<string, string>, insertIndex?: number, name?: string) => Promise<void>
+  updateStep: (stepId: number, type: string, params: Record<string, string>, name?: string) => Promise<void>
   deleteStep: (stepId: number) => Promise<void>
   refreshSteps: (scriptId: string) => Promise<void>
 }
@@ -268,12 +269,12 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   /**
    * 添加步骤
    */
-  addStep: async (scriptId, type, params, insertIndex) => {
+  addStep: async (scriptId, type, params, insertIndex, name) => {
     const api = getAPI()
     if (!api) return
 
     try {
-      const result = await api.addStep({ scriptId, type, params, insertIndex })
+      const result = await api.addStep({ scriptId, type, params, insertIndex, name })
       if (result.success) {
         // 刷新该脚本的步骤列表
         await get().refreshSteps(scriptId)
@@ -286,12 +287,12 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   /**
    * 更新步骤
    */
-  updateStep: async (stepId, type, params) => {
+  updateStep: async (stepId, type, params, name) => {
     const api = getAPI()
     if (!api) return
 
     try {
-      const result = await api.updateStep(stepId, type, params)
+      const result = await api.updateStep(stepId, type, params, name)
       if (result.success) {
         // 刷新当前脚本的步骤
         const scriptId = get().currentScriptId

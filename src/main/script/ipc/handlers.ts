@@ -135,10 +135,11 @@ export function registerScriptHandlers(): void {
     type: string
     params: Record<string, string>
     insertIndex?: number
+    name?: string
   }) => {
     try {
       const service = getService()
-      const stepData = rendererFormToCreateStep(args.type, args.params)
+      const stepData = rendererFormToCreateStep(args.type, args.params, args.name)
       const step = await service.addStep(args.scriptId, stepData, args.insertIndex)
       return { success: true, data: stepEntityToRenderer(step) }
     } catch (error) {
@@ -156,12 +157,15 @@ export function registerScriptHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.STEP_UPDATE, async (_event, args: { stepId: number; type: string; params?: Record<string, string> }) => {
+  ipcMain.handle(IPC.STEP_UPDATE, async (_event, args: { stepId: number; type: string; params?: Record<string, string>; name?: string }) => {
     try {
       const service = getService()
       const updateData: UpdateStepParams = { type: args.type as UpdateStepParams['type'] }
       if (args.params) {
         updateData.data = rendererFormToCreateStep(args.type, args.params).data
+      }
+      if (args.name !== undefined) {
+        updateData.name = args.name
       }
       const step = await service.updateStep(args.stepId, updateData)
       return { success: true, data: step ? stepEntityToRenderer(step) : null }

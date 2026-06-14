@@ -14,6 +14,7 @@ interface RendererStep {
   type: 'click' | 'type' | 'swipe' | 'script'
   params: Record<string, string>
   description: string
+  name: string
 }
 
 /** 渲染进程使用的脚本数据模型 */
@@ -47,9 +48,10 @@ interface ElectronScriptAPI {
     type: string
     params: Record<string, string>
     insertIndex?: number
+    name?: string
   }) => Promise<IpcResult<RendererStep>>
   getStepsByScriptId: (scriptId: string) => Promise<IpcResult<RendererStep[]>>
-  updateStep: (stepId: number, type: string, params: Record<string, string>) => Promise<IpcResult<RendererStep | null>>
+  updateStep: (stepId: number, type: string, params: Record<string, string>, name?: string) => Promise<IpcResult<RendererStep | null>>
   deleteStep: (stepId: number) => Promise<IpcResult<boolean>>
   replaceSteps: (scriptId: string, steps: Array<{ type: string; params: Record<string, string> }>) => Promise<IpcResult<RendererStep[]>>
   updateStepsOrder: (scriptId: string, stepIds: number[]) => Promise<IpcResult<void>>

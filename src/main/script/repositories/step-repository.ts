@@ -16,6 +16,7 @@ export class StepRepository {
       stepIndex,
       type: params.type,
       data: JSON.stringify(params.data),
+      name: params.name || undefined,
     })
     return this.repo.save(entity)
   }
@@ -40,6 +41,7 @@ export class StepRepository {
 
     if (updates.type !== undefined) entity.type = updates.type
     if (updates.data !== undefined) entity.data = JSON.stringify(updates.data)
+    if (updates.name !== undefined) entity.name = updates.name
 
     return this.repo.save(entity)
   }

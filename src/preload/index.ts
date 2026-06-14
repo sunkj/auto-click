@@ -61,12 +61,12 @@ const scriptAPI = {
     ipcRenderer.invoke(IPC.FOLDER_DELETE, id),
 
   // --- 步骤 ---
-  addStep: (args: { scriptId: string; type: string; params: Record<string, string>; insertIndex?: number }) =>
+  addStep: (args: { scriptId: string; type: string; params: Record<string, string>; insertIndex?: number; name?: string }) =>
     ipcRenderer.invoke(IPC.STEP_ADD, args),
   getStepsByScriptId: (scriptId: string) =>
     ipcRenderer.invoke(IPC.STEP_GET_BY_SCRIPT, scriptId),
-  updateStep: (stepId: number, type: string, params: Record<string, string>) =>
-    ipcRenderer.invoke(IPC.STEP_UPDATE, { stepId, type, params }),
+  updateStep: (stepId: number, type: string, params: Record<string, string>, name?: string) =>
+    ipcRenderer.invoke(IPC.STEP_UPDATE, { stepId, type, params, name }),
   deleteStep: (stepId: number) =>
     ipcRenderer.invoke(IPC.STEP_DELETE, stepId),
   replaceSteps: (scriptId: string, steps: Array<{ type: string; params: Record<string, string> }>) =>
