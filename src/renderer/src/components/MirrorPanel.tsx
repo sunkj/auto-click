@@ -96,21 +96,37 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
 
       {/* Content Area */}
       <div
-        className="flex flex-1 items-center justify-center bg-black/5"
+        className="flex flex-1 items-center justify-center bg-black/5 relative"
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => { setIsHovering(false); setMousePos({ x: 0, y: 0 }) }}
       >
-        {!isConnected ? (
+        {isLoading ? (
+          /* 连接中动画 */
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-2 border-muted-foreground/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+              <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
+              <Smartphone className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <div className="text-sm text-muted-foreground">正在连接设备...</div>
+            <div className="flex gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        ) : !isConnected ? (
           <div className="flex flex-col items-center gap-6 max-w-sm text-center select-none">
             <div className="relative">
               <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
                 <Smartphone className="h-10 w-10 text-muted-foreground/30" />
               </div>
             </div>
-            <Button onClick={connect} disabled={isLoading} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
+            <Button onClick={connect} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
               <Smartphone className="h-5 w-5" />
-              {isLoading ? '连接中...' : '连接设备'}
+              连接设备
             </Button>
             {errorMsg && (
               <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-300 text-sm max-w-xs">
@@ -143,7 +159,9 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
             </div>
           </>
         ) : (
-          <span className="text-muted-foreground/50">● {status === 'connecting' ? 'CONNECTING' : 'DISCONNECTED'}</span>
+          <span className="text-muted-foreground/50">
+            ● {status === 'connecting' ? 'CONNECTING' : status === 'error' ? 'ERROR' : 'DISCONNECTED'}
+          </span>
         )}
       </div>
     </main>

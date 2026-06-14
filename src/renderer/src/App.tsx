@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { ScriptPanel } from '@/components/ScriptPanel'
 import { StepPanel } from '@/components/StepPanel'
 import { MirrorPanel } from '@/components/MirrorPanel'
-import { LandingPage } from '@/components/LandingPage'
 import { useScriptStore } from '@/stores/scriptStore'
 
 function App() {
@@ -18,19 +17,17 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
-      {panelsVisible ? (
-        /* Three-column layout */
-        <div className="flex flex-1 overflow-hidden">
-          <ScriptPanel />
-          <StepPanel />
-          <MirrorPanel onTogglePanels={togglePanels} />
-        </div>
-      ) : (
-        /* Landing page (full-width mirroring) */
-        <div className="flex flex-1 overflow-hidden">
-          <LandingPage onTogglePanels={togglePanels} panelsVisible={false} />
-        </div>
-      )}
+      <div className="flex flex-1 overflow-hidden">
+        {/* 左侧面板（可折叠） */}
+        {panelsVisible && (
+          <>
+            <ScriptPanel />
+            <StepPanel />
+          </>
+        )}
+        {/* 投屏区域（始终显示） */}
+        <MirrorPanel onTogglePanels={togglePanels} />
+      </div>
     </div>
   )
 }
