@@ -237,9 +237,11 @@ export function StepPanel() {
       {/* Bottom Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-t px-3 text-[12px]">
         <span className="text-muted-foreground/50">
-          ● 步骤 {selectedStepIndex}/{steps.length || '-'}
+          ● 步骤 {executingStepIndex !== null ? executingStepIndex + 1 : selectedStepIndex}/{steps.length || '-'}
         </span>
-        <span className="text-muted-foreground/50">状态: Success</span>
+        <span className={`text-[11px] ${executingStepIndex !== null ? 'text-yellow-500' : 'text-muted-foreground/50'}`}>
+          {executingStepIndex !== null ? '运行中' : '停止'}
+        </span>
       </div>
 
       {/* 编辑脚本名称弹窗 */}

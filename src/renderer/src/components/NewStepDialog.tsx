@@ -131,7 +131,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       case 'type':
         return (
           <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">输入内容</label>
+            <label className="text-xs text-muted-foreground">输入内容（不支持中文）</label>
             <Input
               placeholder="输入文本..."
               value={params.text}
@@ -164,7 +164,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">按压时长（秒）</label>
+              <label className="text-xs text-muted-foreground">按压时长（秒）(正常设置2秒)</label>
               <Input
                 placeholder="1.0"
                 value={params.pressDuration}
@@ -197,7 +197,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">时长（秒）</label>
+              <label className="text-xs text-muted-foreground">时长（秒）（正常设置0.1秒，时间越短滑动越快）</label>
               <Input
                 placeholder="1.2"
                 value={params.duration}
