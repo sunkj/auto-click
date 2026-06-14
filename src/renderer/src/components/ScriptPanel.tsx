@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ChevronDown,
   Trash2,
+  MousePointerClick,
 } from 'lucide-react'
 
 function ScriptFolder({ folder, onDelete }: { folder: Script; onDelete: (script: Script) => void }) {
@@ -183,8 +184,14 @@ export function ScriptPanel() {
             </div>
           )}
           {!loading && scripts.length === 0 && (
-            <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
-              暂无脚本
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 pt-[320px] text-center">
+              <FileCode className="h-10 w-10 text-muted-foreground/30" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">暂无脚本/目录</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  请从新建脚本/目录
+                </p>
+              </div>
             </div>
           )}
         </div>
