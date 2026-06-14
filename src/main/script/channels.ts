@@ -1,7 +1,7 @@
 /**
  * AutoClick - IPC 通道常量定义
  *
- * 主进程与渲染进程共享，确保通道名称一致
+ * 脚本管理模块的 IPC 通道名称，主进程与 preload 共享。
  */
 
 export const IPC = {

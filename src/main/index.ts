@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
-import { registerScriptHandlers } from './ipc/scriptHandlers'
+import { registerScriptHandlers } from './script'
 
 const isDev = process.env.NODE_ENV !== 'production'
 

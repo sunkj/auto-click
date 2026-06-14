@@ -53,7 +53,6 @@ const CREATE_TABLES_SQL = [
 const dataSourceOptions: DataSourceOptions = {
   type: 'sqlite',
   database: getDatabasePath(),
-  // 关闭自动同步（与 SQLite 存在事务嵌套兼容性问题），改为手动建表
   synchronize: false,
   logging: ['error', 'warn'],
   entities: [ScriptEntity, StepEntity],
@@ -66,7 +65,6 @@ let initialized = false
 
 /**
  * 初始化数据库连接
- * 在 Electron 主进程启动时调用
  */
 export async function initializeDatabase(): Promise<void> {
   if (initialized) {
@@ -77,7 +75,6 @@ export async function initializeDatabase(): Promise<void> {
     await AppDataSource.initialize()
     console.log('[Database] 数据库连接成功')
 
-    // 手动建表（幂等）
     const queryRunner = AppDataSource.createQueryRunner()
     try {
       for (const sql of CREATE_TABLES_SQL) {

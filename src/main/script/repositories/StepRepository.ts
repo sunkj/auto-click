@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm'
 import { AppDataSource } from '../data-source'
 import { StepEntity } from '../entities/StepEntity'
-import { CreateStepParams, UpdateStepParams, StepData } from '../../types/service.types'
+import { CreateStepParams, UpdateStepParams } from '../types'
 
 export class StepRepository {
   private repo: Repository<StepEntity>
@@ -10,9 +10,6 @@ export class StepRepository {
     this.repo = AppDataSource.getRepository(StepEntity)
   }
 
-  /**
-   * 创建步骤记录
-   */
   async create(scriptId: string, stepIndex: number, params: CreateStepParams): Promise<StepEntity> {
     const entity = this.repo.create({
       scriptId,
@@ -20,13 +17,9 @@ export class StepRepository {
       type: params.type,
       data: JSON.stringify(params.data),
     })
-
     return this.repo.save(entity)
   }
 
-  /**
-   * 根据ID查询步骤
-   */
   async findById(id: number): Promise<StepEntity | null> {
     return this.repo.findOne({
       where: { id },
@@ -34,9 +27,6 @@ export class StepRepository {
     })
   }
 
-  /**
-   * 查询脚本的所有步骤（按 step_index 排序）
-   */
   async findByScriptId(scriptId: string): Promise<StepEntity[]> {
     return this.repo.find({
       where: { scriptId },
@@ -44,57 +34,34 @@ export class StepRepository {
     })
   }
 
-  /**
-   * 更新步骤信息
-   */
   async update(id: number, updates: UpdateStepParams): Promise<StepEntity | null> {
     const entity = await this.repo.findOneBy({ id })
-    if (!entity) {
-      return null
-    }
+    if (!entity) return null
 
-    if (updates.type !== undefined) {
-      entity.type = updates.type
-    }
-    if (updates.data !== undefined) {
-      entity.data = JSON.stringify(updates.data)
-    }
+    if (updates.type !== undefined) entity.type = updates.type
+    if (updates.data !== undefined) entity.data = JSON.stringify(updates.data)
 
     return this.repo.save(entity)
   }
 
-  /**
-   * 删除步骤
-   */
   async delete(id: number): Promise<boolean> {
     const result = await this.repo.delete(id)
     return (result.affected ?? 0) > 0
   }
 
-  /**
-   * 删除脚本的所有步骤
-   */
   async deleteByScriptId(scriptId: string): Promise<void> {
     await this.repo.delete({ scriptId })
   }
 
-  /**
-   * 获取脚本的最大步骤序号
-   */
   async getMaxStepIndex(scriptId: string): Promise<number> {
     const result = await this.repo
       .createQueryBuilder('step')
       .select('MAX(step.stepIndex)', 'maxIndex')
       .where('step.scriptId = :scriptId', { scriptId })
       .getRawOne()
-
     return result?.maxIndex ?? 0
   }
 
-  /**
-   * 批量调整步骤序号
-   * 将脚本中从 fromIndex 开始的步骤序号偏移 offset
-   */
   async shiftStepIndices(scriptId: string, fromIndex: number, offset: number): Promise<void> {
     await this.repo
       .createQueryBuilder()
@@ -105,10 +72,6 @@ export class StepRepository {
       .execute()
   }
 
-  /**
-   * 批量更新步骤顺序
-   * 根据传入的步骤ID数组顺序，依次设置 step_index
-   */
   async updateOrder(scriptId: string, stepIds: number[]): Promise<void> {
     await this.repo.manager.transaction(async (manager) => {
       for (let index = 0; index < stepIds.length; index++) {
@@ -121,15 +84,11 @@ export class StepRepository {
     })
   }
 
-  /**
-   * 批量删除不在指定ID列表中的步骤（用于全量替换）
-   */
   async deleteNotIn(scriptId: string, keepIds: number[]): Promise<void> {
     if (keepIds.length === 0) {
       await this.deleteByScriptId(scriptId)
       return
     }
-
     await this.repo
       .createQueryBuilder()
       .delete()

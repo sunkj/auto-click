@@ -1,11 +1,10 @@
 /**
  * AutoClick - 数据模型转换器
  *
- * 桥接主进程 Service 层数据模型与渲染进程 UI 数据模型。
+ * 桥接 Service 层数据模型与渲染进程 UI 数据模型。
  */
-
-import type { ScriptEntity } from '../database/entities/ScriptEntity'
-import type { StepEntity } from '../database/entities/StepEntity'
+import type { ScriptEntity } from '../entities/ScriptEntity'
+import type { StepEntity } from '../entities/StepEntity'
 import type {
   StepData,
   ClickStepData,
@@ -13,7 +12,7 @@ import type {
   SwipeStepData,
   ScriptStepData,
   CreateStepParams,
-} from '../types/service.types'
+} from '../types'
 
 // =============================================================================
 // 渲染进程使用的数据模型（与 stores/scriptStore.ts 匹配）
@@ -36,12 +35,9 @@ export interface RendererScript {
 }
 
 // =============================================================================
-// 转换函数：Entity → Renderer
+// Entity → Renderer
 // =============================================================================
 
-/**
- * 将步骤数据对象展平为 params 字典 + description
- */
 function flattenStepData(type: string, data: StepData): {
   params: Record<string, string>
   description: string
@@ -81,13 +77,9 @@ function flattenStepData(type: string, data: StepData): {
   return { params, description }
 }
 
-/**
- * 将 StepEntity 转换为渲染进程的 Step
- */
 export function stepEntityToRenderer(step: StepEntity): RendererStep {
   const data = JSON.parse(step.data) as StepData
   const { params, description } = flattenStepData(step.type, data)
-
   return {
     id: String(step.id),
     index: step.stepIndex,
@@ -97,9 +89,6 @@ export function stepEntityToRenderer(step: StepEntity): RendererStep {
   }
 }
 
-/**
- * 将 ScriptEntity 转换为渲染进程的 Script
- */
 export function scriptEntityToRenderer(script: ScriptEntity): RendererScript {
   return {
     id: script.id,
@@ -111,16 +100,10 @@ export function scriptEntityToRenderer(script: ScriptEntity): RendererScript {
 }
 
 // =============================================================================
-// 转换函数：Renderer → Service
+// Renderer → Service
 // =============================================================================
 
-/**
- * 将渲染进程的步骤参数重建为 Service 层的 StepData
- */
-export function rendererParamsToStepData(
-  type: string,
-  params: Record<string, string>
-): StepData {
+function rendererParamsToStepData(type: string, params: Record<string, string>): StepData {
   switch (type) {
     case 'click':
       return {
@@ -128,38 +111,28 @@ export function rendererParamsToStepData(
         y: Number(params.y),
         description: params.description || undefined,
       } as ClickStepData
-
     case 'type':
       return {
         content: params.text || '',
         description: params.description || undefined,
       } as TypeStepData
-
     case 'swipe':
       return {
         direction: (params.direction?.toLowerCase() as SwipeStepData['direction']) || 'up',
         duration: Number(params.duration) || 1,
         description: params.description || undefined,
       } as SwipeStepData
-
     case 'script':
       return {
         scriptName: params.scriptName || '',
         description: params.description || undefined,
       } as ScriptStepData
-
     default:
       throw new Error(`未知的步骤类型: ${type}`)
   }
 }
 
-/**
- * 将渲染进程的步骤表单数据转换为 CreateStepParams
- */
-export function rendererFormToCreateStep(
-  type: string,
-  params: Record<string, string>
-): CreateStepParams {
+export function rendererFormToCreateStep(type: string, params: Record<string, string>): CreateStepParams {
   return {
     type: type as CreateStepParams['type'],
     data: rendererParamsToStepData(type, params),

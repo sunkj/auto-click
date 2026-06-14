@@ -1,18 +1,15 @@
 /**
  * AutoClick - 脚本管理 IPC 处理器
- *
- * 注册所有脚本/步骤相关的主进程 IPC 通道，调用 ScriptService 完成业务逻辑，
- * 并通过 data-converter 将 Entity 转换为渲染进程可用的数据格式。
  */
 import { ipcMain } from 'electron'
-import { IPC } from '../../shared/ipc-channels'
+import { IPC } from '../channels'
 import { ScriptService } from '../services/ScriptService'
 import {
   scriptEntityToRenderer,
   stepEntityToRenderer,
   rendererFormToCreateStep,
-} from './data-converter'
-import type { UpdateStepParams } from '../types/service.types'
+} from './converter'
+import type { UpdateStepParams } from '../types'
 
 let scriptService: ScriptService | null = null
 
@@ -36,13 +33,7 @@ export function registerScriptHandlers(): void {
   }) => {
     try {
       const service = getService()
-      const script = await service.createScript(
-        args.name,
-        args.filePath,
-        args.description,
-        undefined,
-        args.parentId
-      )
+      const script = await service.createScript(args.name, args.filePath, args.description, undefined, args.parentId)
       return { success: true, data: scriptEntityToRenderer(script) }
     } catch (error) {
       return { success: false, error: String(error) }
@@ -69,10 +60,7 @@ export function registerScriptHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.SCRIPT_UPDATE, async (_event, args: {
-    id: string
-    updates: Record<string, unknown>
-  }) => {
+  ipcMain.handle(IPC.SCRIPT_UPDATE, async (_event, args: { id: string; updates: Record<string, unknown> }) => {
     try {
       const service = getService()
       const script = await service.updateScript(args.id, args.updates)
@@ -166,16 +154,10 @@ export function registerScriptHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.STEP_UPDATE, async (_event, args: {
-    stepId: number
-    type: string
-    params?: Record<string, string>
-  }) => {
+  ipcMain.handle(IPC.STEP_UPDATE, async (_event, args: { stepId: number; type: string; params?: Record<string, string> }) => {
     try {
       const service = getService()
-      const updateData: UpdateStepParams = {
-        type: args.type as UpdateStepParams['type'],
-      }
+      const updateData: UpdateStepParams = { type: args.type as UpdateStepParams['type'] }
       if (args.params) {
         updateData.data = rendererFormToCreateStep(args.type, args.params).data
       }
@@ -202,9 +184,7 @@ export function registerScriptHandlers(): void {
   }) => {
     try {
       const service = getService()
-      const createSteps = args.steps.map((s) =>
-        rendererFormToCreateStep(s.type, s.params)
-      )
+      const createSteps = args.steps.map((s) => rendererFormToCreateStep(s.type, s.params))
       const steps = await service.replaceSteps(args.scriptId, createSteps)
       return { success: true, data: steps.map(stepEntityToRenderer) }
     } catch (error) {
@@ -212,10 +192,7 @@ export function registerScriptHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.STEP_UPDATE_ORDER, async (_event, args: {
-    scriptId: string
-    stepIds: number[]
-  }) => {
+  ipcMain.handle(IPC.STEP_UPDATE_ORDER, async (_event, args: { scriptId: string; stepIds: number[] }) => {
     try {
       const service = getService()
       await service.updateStepsOrder(args.scriptId, args.stepIds)
@@ -243,9 +220,7 @@ export function registerScriptHandlers(): void {
     try {
       const service = getService()
       const result = await service.loadFromFile(filePath)
-      if (!result) {
-        return { success: false, error: '文件不存在或加载失败' }
-      }
+      if (!result) return { success: false, error: '文件不存在或加载失败' }
       return {
         success: true,
         data: {
