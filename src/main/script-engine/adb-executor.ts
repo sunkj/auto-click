@@ -46,6 +46,10 @@ export const adbExec = {
     await adbShell(serial, `input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${duration ?? 200}`)
   },
 
+  async longPress(serial: string, x: number, y: number, durationMs: number): Promise<void> {
+    await adbShell(serial, `input swipe ${Math.round(x)} ${Math.round(y)} ${Math.round(x)} ${Math.round(y)} ${durationMs}`)
+  },
+
   async type(serial: string, text: string): Promise<void> {
     const escaped = text
       .replace(/\\/g, '\\\\')

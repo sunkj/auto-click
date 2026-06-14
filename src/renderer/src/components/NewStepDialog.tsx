@@ -8,9 +8,10 @@ import {
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
+  Pointer,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress'
 
 interface NewStepDialogProps {
   open: boolean
@@ -22,6 +23,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   click: { label: '点击', icon: MousePointerClick, color: 'text-blue-500' },
   type: { label: '输入', icon: Keyboard, color: 'text-green-500' },
   swipe: { label: '滑动', icon: ArrowUpDown, color: 'text-purple-500' },
+  longpress: { label: '长按', icon: Pointer, color: 'text-red-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -32,6 +34,7 @@ function paramsFromStep(step: Step): Record<string, string> {
   if (!p.text) p.text = ''
   if (!p.x) p.x = ''
   if (!p.y) p.y = ''
+  if (!p.duration) p.duration = ''
   return p
 }
 
@@ -47,6 +50,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       text: '',
       direction: 'Up',
       duration: '',
+      pressDuration: '1.0',
     }
   )
 
@@ -57,7 +61,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       setParams(paramsFromStep(editStep))
     } else {
       setStepType('click')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0' })
     }
   }, [editStep])
 
@@ -95,7 +99,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress']
 
   const renderParams = () => {
     switch (stepType) {
@@ -134,6 +138,40 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               onChange={(e) => handleParamChange('text', e.target.value)}
               className="h-8 text-sm"
             />
+          </div>
+        )
+      case 'longpress':
+        return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">X 坐标</label>
+                <Input
+                  placeholder="540"
+                  value={params.x}
+                  onChange={(e) => handleParamChange('x', e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Y 坐标</label>
+                <Input
+                  placeholder="1200"
+                  value={params.y}
+                  onChange={(e) => handleParamChange('y', e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">按压时长（秒）</label>
+              <Input
+                placeholder="1.0"
+                value={params.pressDuration}
+                onChange={(e) => handleParamChange('pressDuration', e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
           </div>
         )
       case 'swipe':

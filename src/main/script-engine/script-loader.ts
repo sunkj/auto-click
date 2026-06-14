@@ -37,9 +37,10 @@ export class ScriptLoader {
       data: parsed,
       delay: parsed.delay || undefined,
     }
-    // 兼容：click 坐标可能是字符串
-    if (base.type === 'click') {
+    // 兼容：click/longpress 坐标可能是字符串
+    if (base.type === 'click' || base.type === 'longpress') {
       base.data = {
+        ...parsed,
         x: typeof parsed.x === 'string' ? parseInt(parsed.x) : parsed.x,
         y: typeof parsed.y === 'string' ? parseInt(parsed.y) : parsed.y,
       }

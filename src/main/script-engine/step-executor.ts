@@ -17,6 +17,9 @@ export class StepExecutor {
         case 'swipe':
           await this.executeSwipe(step.data, context.serial)
           break
+        case 'longpress':
+          await this.executeLongPress(step.data, context.serial)
+          break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
       }
@@ -85,5 +88,16 @@ export class StepExecutor {
     }
 
     await adbExec.swipe(serial, x1, y1, x2, y2, durationMs)
+  }
+
+  private async executeLongPress(data: Record<string, any>, serial: string): Promise<void> {
+    const x = Number(data.x)
+    const y = Number(data.y)
+    if (isNaN(x) || isNaN(y)) {
+      throw new ScriptEngineError(ErrorCode.COORD_OUT_OF_RANGE, '长按坐标无效')
+    }
+    // duration 从 UI 来的是秒，转为毫秒
+    const durationMs = Math.round((Number(data.duration) || 1) * 1000)
+    await adbExec.longPress(serial, x, y, durationMs)
   }
 }

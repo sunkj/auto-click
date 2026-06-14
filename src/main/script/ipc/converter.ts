@@ -11,6 +11,7 @@ import type {
   TypeStepData,
   SwipeStepData,
   ScriptStepData,
+  LongPressStepData,
   CreateStepParams,
 } from '../types'
 
@@ -72,6 +73,14 @@ function flattenStepData(type: string, data: StepData): {
       description = d.description ?? d.scriptName
       break
     }
+    case 'longpress': {
+      const d = data as LongPressStepData
+      params.x = String(d.x)
+      params.y = String(d.y)
+      params.pressDuration = String(d.duration)
+      description = d.description ?? `长按 (${d.x}, ${d.y}) ${d.duration}s`
+      break
+    }
   }
 
   return { params, description }
@@ -122,6 +131,13 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
         duration: Number(params.duration) || 1,
         description: params.description || undefined,
       } as SwipeStepData
+    case 'longpress':
+      return {
+        x: Number(params.x),
+        y: Number(params.y),
+        duration: Number(params.pressDuration) || 1,
+        description: params.description || undefined,
+      } as LongPressStepData
     case 'script':
       return {
         scriptName: params.scriptName || '',

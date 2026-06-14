@@ -15,6 +15,7 @@ import {
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
+  Pointer,
   FolderClosed,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
@@ -26,6 +27,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   click: MousePointerClick,
   type: Keyboard,
   swipe: ArrowUpDown,
+  longpress: Pointer,
   script: FileCode,
 }
 

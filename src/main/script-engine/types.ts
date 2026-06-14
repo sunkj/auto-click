@@ -1,5 +1,5 @@
 /** 步骤类型 */
-export type StepType = 'click' | 'type' | 'swipe'
+export type StepType = 'click' | 'type' | 'swipe' | 'longpress'
 
 /** 脚本步骤（引擎内部使用的标准格式） */
 export interface EngineStep {
