@@ -8,10 +8,9 @@ import {
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
-  FileCode,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'script'
+type StepType = 'click' | 'type' | 'swipe'
 
 interface NewStepDialogProps {
   open: boolean
@@ -23,7 +22,6 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   click: { label: '点击', icon: MousePointerClick, color: 'text-blue-500' },
   type: { label: '输入', icon: Keyboard, color: 'text-green-500' },
   swipe: { label: '滑动', icon: ArrowUpDown, color: 'text-purple-500' },
-  script: { label: '脚本', icon: FileCode, color: 'text-orange-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -32,7 +30,6 @@ function paramsFromStep(step: Step): Record<string, string> {
   if (!p.direction) p.direction = 'Up'
   if (!p.duration) p.duration = ''
   if (!p.text) p.text = ''
-  if (!p.scriptName) p.scriptName = ''
   if (!p.x) p.x = ''
   if (!p.y) p.y = ''
   return p
@@ -50,7 +47,6 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       text: '',
       direction: 'Up',
       duration: '',
-      scriptName: '',
     }
   )
 
@@ -61,7 +57,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       setParams(paramsFromStep(editStep))
     } else {
       setStepType('click')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', scriptName: '' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '' })
     }
   }, [editStep])
 
@@ -99,7 +95,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'script']
+  const types: StepType[] = ['click', 'type', 'swipe']
 
   const renderParams = () => {
     switch (stepType) {
@@ -171,18 +167,6 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
                 className="h-8 text-sm"
               />
             </div>
-          </div>
-        )
-      case 'script':
-        return (
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">子脚本名称</label>
-            <Input
-              placeholder="run.js"
-              value={params.scriptName}
-              onChange={(e) => handleParamChange('scriptName', e.target.value)}
-              className="h-8 text-sm"
-            />
           </div>
         )
     }
