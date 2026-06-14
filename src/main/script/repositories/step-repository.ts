@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm'
 import { AppDataSource } from '../data-source'
-import { StepEntity } from '../entities/StepEntity'
+import { StepEntity } from '../entities/step-entity'
 import { CreateStepParams, UpdateStepParams } from '../types'
 
 export class StepRepository {

@@ -3,8 +3,8 @@
  *
  * 桥接 Service 层数据模型与渲染进程 UI 数据模型。
  */
-import type { ScriptEntity } from '../entities/ScriptEntity'
-import type { StepEntity } from '../entities/StepEntity'
+import type { ScriptEntity } from '../entities/script-entity'
+import type { StepEntity } from '../entities/step-entity'
 import type {
   StepData,
   ClickStepData,

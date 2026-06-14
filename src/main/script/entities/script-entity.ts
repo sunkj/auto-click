@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm'
-import { StepEntity } from './StepEntity'
+import { StepEntity } from './step-entity'
 
 @Entity('scripts')
 export class ScriptEntity {

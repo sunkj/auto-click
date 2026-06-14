@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { Repository } from 'typeorm'
 import { AppDataSource } from '../data-source'
-import { ScriptEntity } from '../entities/ScriptEntity'
+import { ScriptEntity } from '../entities/script-entity'
 import { CreateScriptParams, UpdateScriptParams } from '../types'
 
 export class ScriptRepository {

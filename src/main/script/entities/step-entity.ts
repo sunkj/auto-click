@@ -9,7 +9,7 @@ import {
   Unique,
   Index,
 } from 'typeorm'
-import { ScriptEntity } from './ScriptEntity'
+import { ScriptEntity } from './script-entity'
 
 @Entity('steps')
 @Unique('UQ_script_step_index', ['scriptId', 'stepIndex'])

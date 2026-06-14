@@ -5,7 +5,7 @@ import { ipcMain, dialog } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
 import { IPC } from '../channels'
-import { ScriptService } from '../services/ScriptService'
+import { ScriptService } from '../services/script-service'
 import {
   scriptEntityToRenderer,
   stepEntityToRenderer,

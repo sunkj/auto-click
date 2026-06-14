@@ -2,8 +2,8 @@ import 'reflect-metadata'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { app } from 'electron'
 import path from 'path'
-import { ScriptEntity } from './entities/ScriptEntity'
-import { StepEntity } from './entities/StepEntity'
+import { ScriptEntity } from './entities/script-entity'
+import { StepEntity } from './entities/step-entity'
 
 const isDev = process.env.NODE_ENV !== 'production'
 

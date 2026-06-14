@@ -4,10 +4,10 @@
  * 运行于 Electron 主进程，负责脚本及其步骤数据的持久化存储与操作管理。
  */
 import fs from 'fs/promises'
-import { ScriptRepository } from '../repositories/ScriptRepository'
-import { StepRepository } from '../repositories/StepRepository'
-import { ScriptEntity } from '../entities/ScriptEntity'
-import { StepEntity } from '../entities/StepEntity'
+import { ScriptRepository } from '../repositories/script-repository'
+import { StepRepository } from '../repositories/step-repository'
+import { ScriptEntity } from '../entities/script-entity'
+import { StepEntity } from '../entities/step-entity'
 import { initializeDatabase } from '../data-source'
 import type {
   CreateScriptParams,

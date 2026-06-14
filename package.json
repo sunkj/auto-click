@@ -7,9 +7,9 @@
     "postinstall": "electron-rebuild",
     "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
     "dev:renderer": "vite",
-    "dev:main": "tsc -p tsconfig.main.json && cp src/main/ScreenMirror/bridge.mjs dist/main/main/ScreenMirror/bridge.mjs && wait-on http://localhost:5173 && NODE_ENV=development electron .",
+    "dev:main": "tsc -p tsconfig.main.json && cp src/main/screen-mirror/bridge.mjs dist/main/main/screen-mirror/bridge.mjs && wait-on http://localhost:5173 && NODE_ENV=development electron .",
     "build:renderer": "vite build",
-    "build:main": "tsc -p tsconfig.main.json && cp src/main/ScreenMirror/bridge.mjs dist/main/main/ScreenMirror/bridge.mjs",
+    "build:main": "tsc -p tsconfig.main.json && cp src/main/screen-mirror/bridge.mjs dist/main/main/screen-mirror/bridge.mjs",
     "build": "npm run build:renderer && npm run build:main",
     "preview": "vite preview"
   },
