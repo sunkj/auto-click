@@ -17,6 +17,7 @@ import {
   Keyboard,
   ArrowUpDown,
   Edit2,
+  FolderClosed,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -35,22 +36,28 @@ export function StepPanel() {
   const [stepDialogOpen, setStepDialogOpen] = useState(false)
   const [editScriptOpen, setEditScriptOpen] = useState(false)
   const [editScriptName, setEditScriptName] = useState('')
+  const [editScriptFolder, setEditScriptFolder] = useState<string | null>(null)
   const [deleteStepTarget, setDeleteStepTarget] = useState<Step | null>(null)
   const [editingStep, setEditingStep] = useState<Step | null>(null)
   const currentScript = scripts.find((s) => s.id === currentScriptId)
+  const folders = scripts.filter((s) => s.type === 'folder')
 
   // 打开编辑脚本弹窗
   const handleOpenEditScript = () => {
     if (!currentScript) return
     setEditScriptName(currentScript.name.replace('.js', ''))
+    setEditScriptFolder(currentScript.parentId)
     setEditScriptOpen(true)
   }
 
-  // 保存脚本名称
+  // 保存脚本名称 + 目录
   const handleSaveScriptName = async () => {
     if (!currentScript || !editScriptName.trim()) return
     const name = editScriptName.trim().endsWith('.js') ? editScriptName.trim() : editScriptName.trim() + '.js'
-    await useScriptStore.getState().updateScript(currentScript.id, { name })
+    await useScriptStore.getState().updateScript(currentScript.id, {
+      name,
+      parentId: editScriptFolder,
+    })
     setEditScriptOpen(false)
   }
 
@@ -229,17 +236,53 @@ export function StepPanel() {
       <Dialog open={editScriptOpen} onOpenChange={setEditScriptOpen}>
         <DialogHeader>
           <DialogTitle>编辑脚本</DialogTitle>
-          <DialogDescription>修改脚本名称</DialogDescription>
+          <DialogDescription>修改脚本名称或目录</DialogDescription>
         </DialogHeader>
-        <div className="space-y-1.5 py-2">
-          <label className="text-xs font-medium text-foreground">脚本名称</label>
-          <Input
-            placeholder="输入脚本名称..."
-            value={editScriptName}
-            onChange={(e) => setEditScriptName(e.target.value)}
-            className="h-8 text-sm"
-            autoFocus
-          />
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">脚本名称</label>
+            <Input
+              placeholder="输入脚本名称..."
+              value={editScriptName}
+              onChange={(e) => setEditScriptName(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+            />
+          </div>
+
+          {/* 目录选择器 */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">目录</label>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setEditScriptFolder(null)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs border transition-colors',
+                  editScriptFolder === null
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-accent'
+                )}
+              >
+                <FolderClosed className="h-3 w-3" />
+                根目录
+              </button>
+              {folders.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setEditScriptFolder(f.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs border transition-colors',
+                    editScriptFolder === f.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  )}
+                >
+                  <FolderClosed className="h-3 w-3" />
+                  {f.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => setEditScriptOpen(false)}>

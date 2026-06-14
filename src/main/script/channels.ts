@@ -26,6 +26,14 @@ export const IPC = {
   FOLDER_GET_ALL: 'folder:getAll',
   FOLDER_DELETE: 'folder:delete',
 
+  // 文件对话框
+  DIALOG_OPEN_FILE: 'dialog:openFile',
+  DIALOG_SAVE_FILE: 'dialog:saveFile',
+
+  // 导入/导出
+  SCRIPT_IMPORT: 'script:import',
+  SCRIPT_EXPORT: 'script:export',
+
   // 文件同步
   SYNC_TO_FILE: 'script:syncToFile',
   LOAD_FROM_FILE: 'script:loadFromFile',

@@ -53,7 +53,7 @@ interface ScriptStore {
 
   // 脚本 CRUD（异步）
   createScript: (name: string, parentId?: string | null, description?: string) => Promise<void>
-  updateScript: (id: string, updates: { name?: string; description?: string }) => Promise<void>
+  updateScript: (id: string, updates: { name?: string; description?: string; parentId?: string | null }) => Promise<void>
   deleteScript: (id: string) => Promise<void>
   updateScriptsOrder: (scriptIds: string[]) => Promise<void>
 

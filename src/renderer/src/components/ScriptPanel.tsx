@@ -105,7 +105,7 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
 }
 
 export function ScriptPanel() {
-  const { scripts, loading } = useScriptStore()
+  const { scripts, loading, currentScriptId } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Script | null>(null)
@@ -123,6 +123,29 @@ export function ScriptPanel() {
       useScriptStore.getState().deleteScript(deleteTarget.id)
     }
     setDeleteTarget(null)
+  }
+
+  const handleImport = async () => {
+    const api = window.electronAPI?.script
+    if (!api) return
+    try {
+      const result = await api.importScript()
+      if (result.success && result.data) {
+        await useScriptStore.getState().loadScripts()
+      }
+    } catch (error) {
+      console.error('[ScriptPanel] 导入失败:', error)
+    }
+  }
+
+  const handleExport = async () => {
+    const api = window.electronAPI?.script
+    if (!api || !currentScriptId) return
+    try {
+      await api.exportScript(currentScriptId)
+    } catch (error) {
+      console.error('[ScriptPanel] 导出失败:', error)
+    }
   }
 
   return (
@@ -175,11 +198,22 @@ export function ScriptPanel() {
       {/* Footer */}
       <div className="px-0 space-y-1">
         <div className="flex gap-1 px-2 py-1">
-          <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 h-7 text-xs gap-1"
+            onClick={handleImport}
+          >
             <Download className="h-3 w-3" />
             导入
           </Button>
-          <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 h-7 text-xs gap-1"
+            onClick={handleExport}
+            disabled={!currentScriptId}
+          >
             <Upload className="h-3 w-3" />
             导出
           </Button>

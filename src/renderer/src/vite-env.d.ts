@@ -54,6 +54,11 @@ interface ElectronScriptAPI {
   replaceSteps: (scriptId: string, steps: Array<{ type: string; params: Record<string, string> }>) => Promise<IpcResult<RendererStep[]>>
   updateStepsOrder: (scriptId: string, stepIds: number[]) => Promise<IpcResult<void>>
 
+  /** 导入：打开文件对话框 → 解析 → 入库 → 返回新脚本 */
+  importScript: () => Promise<IpcResult<RendererScript>>
+  /** 导出：生成 .js 文件 → 保存对话框 → 写入 */
+  exportScript: (scriptId: string) => Promise<IpcResult<string>>
+
   syncToFile: (scriptId: string) => Promise<IpcResult<boolean>>
   loadFromFile: (filePath: string) => Promise<IpcResult<{
     script: RendererScript

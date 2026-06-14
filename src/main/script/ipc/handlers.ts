@@ -1,7 +1,9 @@
 /**
  * AutoClick - 脚本管理 IPC 处理器
  */
-import { ipcMain } from 'electron'
+import { ipcMain, dialog } from 'electron'
+import fs from 'fs/promises'
+import path from 'path'
 import { IPC } from '../channels'
 import { ScriptService } from '../services/ScriptService'
 import {
@@ -9,7 +11,7 @@ import {
   stepEntityToRenderer,
   rendererFormToCreateStep,
 } from './converter'
-import type { UpdateStepParams } from '../types'
+import type { UpdateStepParams, CreateStepParams, StepData } from '../types'
 
 let scriptService: ScriptService | null = null
 
@@ -228,6 +230,144 @@ export function registerScriptHandlers(): void {
           steps: result.steps.map(stepEntityToRenderer),
         },
       }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // =========================================================================
+  // 文件对话框
+  // =========================================================================
+
+  ipcMain.handle(IPC.DIALOG_OPEN_FILE, async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: '导入脚本',
+        filters: [{ name: '脚本文件', extensions: ['js'] }],
+        properties: ['openFile'],
+      })
+      return { success: true, data: result.filePaths[0] || null }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC.DIALOG_SAVE_FILE, async (_event, defaultName: string) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        title: '导出脚本',
+        defaultPath: defaultName,
+        filters: [{ name: '脚本文件', extensions: ['js'] }],
+      })
+      return { success: true, data: result.filePath || null }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  // =========================================================================
+  // 导入/导出
+  // =========================================================================
+
+  /**
+   * 导入：打开文件对话框 → 读取 .js 文件 → 解析 steps → 入库
+   */
+  ipcMain.handle(IPC.SCRIPT_IMPORT, async () => {
+    try {
+      // 1. 打开文件对话框
+      const dialogResult = await dialog.showOpenDialog({
+        title: '导入脚本',
+        filters: [{ name: '脚本文件', extensions: ['js'] }],
+        properties: ['openFile'],
+      })
+      if (dialogResult.canceled || !dialogResult.filePaths[0]) {
+        return { success: false, error: '已取消' }
+      }
+
+      const filePath = dialogResult.filePaths[0]
+      const fileName = path.basename(filePath, '.js')
+
+      // 2. 读取文件内容
+      const content = await fs.readFile(filePath, 'utf-8')
+
+      // 3. 解析：去掉首行注释（// ...），解析 JSON 数组
+      const lines = content.split('\n')
+      const jsonStr = lines
+        .filter((line) => !line.trim().startsWith('//'))
+        .join('\n')
+        .trim()
+
+      let stepsData: Array<{ type: string; data: Record<string, unknown> }> = []
+      try {
+        stepsData = JSON.parse(jsonStr)
+        if (!Array.isArray(stepsData)) throw new Error('不是数组')
+      } catch {
+        return { success: false, error: '文件格式无效：无法解析步骤数据' }
+      }
+
+      // 4. 入库
+      const service = getService()
+      const script = await service.createScript(fileName, filePath)
+
+      for (let i = 0; i < stepsData.length; i++) {
+        const s = stepsData[i]
+        await service.addStep(script.id, {
+          type: s.type as CreateStepParams['type'],
+          data: s.data as unknown as StepData,
+        })
+      }
+
+      const fullScript = await service.getScriptById(script.id)
+      return {
+        success: true,
+        data: fullScript ? scriptEntityToRenderer(fullScript) : null,
+      }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  /**
+   * 导出：选中脚本 → 打开保存对话框 → 写入 .js 文件
+   */
+  ipcMain.handle(IPC.SCRIPT_EXPORT, async (_event, scriptId: string) => {
+    try {
+      const service = getService()
+      const script = await service.getScriptById(scriptId)
+      if (!script) return { success: false, error: '脚本不存在' }
+
+      const steps = await service.getStepsByScriptId(scriptId)
+
+      // 1. 打开保存对话框
+      const saveName = script.name.endsWith('.js') ? script.name : `${script.name}.js`
+      const dialogResult = await dialog.showSaveDialog({
+        title: '导出脚本',
+        defaultPath: saveName,
+        filters: [{ name: '脚本文件', extensions: ['js'] }],
+      })
+      if (dialogResult.canceled || !dialogResult.filePath) {
+        return { success: false, error: '已取消' }
+      }
+
+      // 2. 生成文件内容
+      const stepsJson = steps.map((step) => {
+        const data = JSON.parse(step.data)
+        return { type: step.type, data }
+      })
+
+      const fileContent = [
+        `// AutoClick Script: ${script.name}`,
+        `// Generated at: ${new Date().toISOString()}`,
+        `// Steps: ${steps.length}`,
+        '',
+        JSON.stringify(stepsJson, null, 2),
+        '',
+      ].join('\n')
+
+      // 3. 写入文件
+      await fs.writeFile(dialogResult.filePath, fileContent, 'utf-8')
+
+      return { success: true, data: dialogResult.filePath }
     } catch (error) {
       return { success: false, error: String(error) }
     }

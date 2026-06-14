@@ -23,6 +23,12 @@ const IPC = {
   FOLDER_GET_ALL: 'folder:getAll',
   FOLDER_DELETE: 'folder:delete',
 
+  DIALOG_OPEN_FILE: 'dialog:openFile',
+  DIALOG_SAVE_FILE: 'dialog:saveFile',
+
+  SCRIPT_IMPORT: 'script:import',
+  SCRIPT_EXPORT: 'script:export',
+
   SYNC_TO_FILE: 'script:syncToFile',
   LOAD_FROM_FILE: 'script:loadFromFile',
 } as const
@@ -67,6 +73,12 @@ const scriptAPI = {
     ipcRenderer.invoke(IPC.STEP_REPLACE, { scriptId, steps }),
   updateStepsOrder: (scriptId: string, stepIds: number[]) =>
     ipcRenderer.invoke(IPC.STEP_UPDATE_ORDER, { scriptId, stepIds }),
+
+  // --- 导入/导出 ---
+  importScript: () =>
+    ipcRenderer.invoke(IPC.SCRIPT_IMPORT),
+  exportScript: (scriptId: string) =>
+    ipcRenderer.invoke(IPC.SCRIPT_EXPORT, scriptId),
 
   // --- 文件同步 ---
   syncToFile: (scriptId: string) =>
