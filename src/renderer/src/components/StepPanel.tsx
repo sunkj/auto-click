@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import {
-  ArrowLeft,
   Play,
   CircleDot,
   SquarePen,
@@ -104,7 +103,7 @@ export function StepPanel() {
       <div className="flex h-[40px] items-center justify-between border-b px-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-7 w-7">
-            <ArrowLeft className="h-4 w-4" />
+            <FileCode className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate max-w-[140px]">

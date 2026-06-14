@@ -4,6 +4,7 @@ interface ScreenCanvasProps {
   isConnected: boolean
   deviceWidth?: number
   deviceHeight?: number
+  isMinimized?: boolean
   onMouseMove?: (x: number, y: number) => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
@@ -43,7 +44,7 @@ const SWIPE_DISTANCE_MULTIPLIER = 3
  *
  * 管理 TinyH264Decoder 视频流解码、Canvas 渲染、点击和滑动交互。
  */
-export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, onMouseMove, onMouseEnter, onMouseLeave }: ScreenCanvasProps) {
+export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, isMinimized, onMouseMove, onMouseEnter, onMouseLeave }: ScreenCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   // 视频分辨率（由解码器设置后读取）
@@ -141,21 +142,21 @@ export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, onMouseMo
 
   // ===========================================================================
   // 当视频分辨率或窗口尺寸变化时，重新计算显示尺寸
-  // 可用空间 ≈ 视口宽度×95%（三栏模式下减去侧栏），高度减去工具栏+状态栏
+  // 最小化模式：全屏无工具栏，高度用 window.innerHeight
   // ===========================================================================
   useEffect(() => {
     if (!videoSize.width || !videoSize.height) return
 
     const recalc = () => {
-      const maxW = window.innerWidth   // 画布父容器 flex-1 的可用宽度
-      const maxH = window.innerHeight - 100  // 减去 40px 工具栏 + 40px 状态栏 + 20px 余量
+      const maxW = window.innerWidth
+      const maxH = isMinimized ? window.innerHeight - 40 : window.innerHeight - 100
       setDisplaySize(calcDisplaySize(videoSize.width, videoSize.height, maxW, maxH))
     }
 
     recalc()
     window.addEventListener('resize', recalc)
     return () => window.removeEventListener('resize', recalc)
-  }, [videoSize])
+  }, [videoSize, isMinimized])
 
   // ===========================================================================
   // 鼠标事件

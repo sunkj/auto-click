@@ -146,8 +146,24 @@ const screenMirrorAPI = {
 // 暴露安全 API 到渲染进程
 // =============================================================================
 
+// =============================================================================
+// 窗口控制
+// =============================================================================
+
+const windowAPI = {
+  resizeToScreen: (width: number, height: number) =>
+    ipcRenderer.invoke('window:resizeToScreen', width, height),
+  restoreSize: () =>
+    ipcRenderer.invoke('window:restoreSize'),
+}
+
+// =============================================================================
+// 暴露安全 API 到渲染进程
+// =============================================================================
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   script: scriptAPI,
   screenMirror: screenMirrorAPI,
+  window: windowAPI,
 })

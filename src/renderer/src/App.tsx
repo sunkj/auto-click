@@ -26,7 +26,7 @@ function App() {
           </>
         )}
         {/* 投屏区域（始终显示） */}
-        <MirrorPanel onTogglePanels={togglePanels} />
+        <MirrorPanel onTogglePanels={togglePanels} panelsVisible={panelsVisible} />
       </div>
     </div>
   )

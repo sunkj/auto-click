@@ -10,6 +10,8 @@ import {
   ArrowUpDown,
   Crosshair,
   PanelLeftClose,
+  Minimize2,
+  Maximize2,
   Square,
   ArrowLeft,
   Home,
@@ -18,12 +20,14 @@ import { ScreenCanvas } from '@/components/ScreenCanvas'
 
 interface MirrorPanelProps {
   onTogglePanels?: () => void
+  panelsVisible?: boolean
 }
 
-export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
+export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps) {
   const { status, deviceInfo, errorMsg, connect, disconnect } = useDeviceStore()
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isHovering, setIsHovering] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
@@ -33,61 +37,103 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
   const handleCanvasEnter = () => setIsHovering(true)
   const handleCanvasLeave = () => { setIsHovering(false); setMousePos({ x: 0, y: 0 }) }
 
+  // 最小化/还原
+  const [prevPanelsVisible, setPrevPanelsVisible] = useState(false)
+
+  const handleToggleMinimize = async () => {
+    if (isMinimized) {
+      // 还原窗口
+      await window.electronAPI?.window?.restoreSize?.()
+      setIsMinimized(false)
+      // 恢复之前的面板状态
+      if (prevPanelsVisible) onTogglePanels?.()
+    } else {
+      // 记住面板状态，如果展开则先收起
+      setPrevPanelsVisible(!!panelsVisible)
+      if (panelsVisible) onTogglePanels?.()
+      // 窗口宽度固定 328px，高度按设备比例 + 工具栏
+      const dw = deviceInfo?.deviceWidth || 1080
+      const dh = deviceInfo?.deviceHeight || 2400
+      const w = 328
+      const h = Math.round(w * (dh / dw)) + 40
+      await window.electronAPI?.window?.resizeToScreen?.(w, h)
+      setIsMinimized(true)
+    }
+  }
+
+  // 收起/展开侧边栏：同时还原窗口
+  const handleTogglePanels = () => {
+    if (isMinimized) {
+      window.electronAPI?.window?.restoreSize?.()
+      setIsMinimized(false)
+    }
+    onTogglePanels?.()
+  }
+
   return (
     <main className="flex flex-1 flex-col bg-background">
       {/* Top Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-b px-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
+          {onTogglePanels && !isMinimized && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleTogglePanels} title="收起侧边栏">
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
           {onTogglePanels && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleMinimize} title={isMinimized ? '还原窗口' : '最小化投屏'}>
+              {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+            </Button>
+          )}
+          {!isMinimized && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onTogglePanels} title="收起侧边栏">
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
               <div className="mx-1 h-4 w-px bg-border" />
+              <div className="flex items-center gap-1.5">
+                <Monitor className="h-3.5 w-3.5" />
+                <span>投屏</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Wifi className={`h-3.5 w-3.5 ${deviceInfo?.transport === 'wi-fi' ? 'text-blue-400' : 'text-muted-foreground/50'}`} />
+                <span>{deviceInfo?.transport === 'wi-fi' ? 'Wi-Fi' : 'USB'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span>{deviceInfo?.deviceWidth ? `${deviceInfo.deviceWidth}×${deviceInfo.deviceHeight}` : '-'}</span>
+              </div>
+              <Separator orientation="vertical" className="h-4" />
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={connect} disabled={isConnected || isLoading} title="连接设备">
+                  <Smartphone className="h-3 w-3" />
+                  {isLoading ? '连接中...' : '连接'}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-destructive" onClick={disconnect} disabled={!isConnected} title="断开连接">
+                  <Square className="h-3 w-3" />
+                  断开
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="返回键" onClick={() => window.electronAPI?.screenMirror?.back()}>
+                  <ArrowLeft className="h-3 w-3" />
+                  返回
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="回到首页" onClick={() => window.electronAPI?.screenMirror?.home()}>
+                  <Home className="h-3 w-3" />
+                  Home
+                </Button>
+              </div>
             </>
           )}
-          <div className="flex items-center gap-1.5">
-            <Monitor className="h-3.5 w-3.5" />
-            <span>投屏</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Wifi className={`h-3.5 w-3.5 ${deviceInfo?.transport === 'wi-fi' ? 'text-blue-400' : 'text-muted-foreground/50'}`} />
-            <span>{deviceInfo?.transport === 'wi-fi' ? 'Wi-Fi' : 'USB'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <ArrowUpDown className="h-3.5 w-3.5" />
-            <span>{deviceInfo?.deviceWidth ? `${deviceInfo.deviceWidth}×${deviceInfo.deviceHeight}` : '-'}</span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={connect} disabled={isConnected || isLoading} title="连接设备">
-              <Smartphone className="h-3 w-3" />
-              {isLoading ? '连接中...' : '连接'}
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 text-destructive" onClick={disconnect} disabled={!isConnected} title="断开连接">
-              <Square className="h-3 w-3" />
-              断开
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="返回键" onClick={() => window.electronAPI?.screenMirror?.back()}>
-              <ArrowLeft className="h-3 w-3" />
-              返回
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="回到首页" onClick={() => window.electronAPI?.screenMirror?.home()}>
-              <Home className="h-3 w-3" />
-              Home
-            </Button>
-          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground/70">
-            <Crosshair className="h-3 w-3" />
-            <span>X: {isHovering ? mousePos.x : '-'} Y: {isHovering ? mousePos.y : '-'}</span>
+        {!isMinimized && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground/70">
+              <Crosshair className="h-3 w-3" />
+              <span>X: {isHovering ? mousePos.x : '-'} Y: {isHovering ? mousePos.y : '-'}</span>
+            </div>
+            {!isConnected && (
+              <Badge variant="outline" className="h-5 text-[10px] font-normal text-muted-foreground/50">未连接</Badge>
+            )}
           </div>
-          {!isConnected && (
-            <Badge variant="outline" className="h-5 text-[10px] font-normal text-muted-foreground/50">未连接</Badge>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Content Area */}
@@ -130,11 +176,12 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 py-2">
+          <div className={`flex flex-col items-center ${isMinimized ? 'gap-0 py-0' : 'gap-2 py-2'}`}>
             <ScreenCanvas
               isConnected={isConnected}
               deviceWidth={deviceInfo?.deviceWidth}
               deviceHeight={deviceInfo?.deviceHeight}
+              isMinimized={isMinimized}
               onMouseMove={handleCanvasMove}
               onMouseEnter={handleCanvasEnter}
               onMouseLeave={handleCanvasLeave}
@@ -144,24 +191,26 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
       </div>
 
       {/* Bottom Device Info Bar */}
-      <div className="flex h-[40px] items-center justify-between border-t px-4 text-[11px]">
-        {isConnected && deviceInfo ? (
-          <>
-            <div className="flex items-center gap-2">
-              <span className="text-green-500 font-medium">● CONNECTED</span>
-              <span className="text-muted-foreground">{deviceInfo.model}</span>
-            </div>
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <span>{deviceInfo.resolution}</span>
-              <span>{deviceInfo.serial}</span>
-            </div>
-          </>
-        ) : (
-          <span className="text-muted-foreground/50">
-            ● {status === 'connecting' ? 'CONNECTING' : status === 'error' ? 'ERROR' : 'DISCONNECTED'}
-          </span>
-        )}
-      </div>
+      {!isMinimized && (
+        <div className="flex h-[40px] items-center justify-between border-t px-4 text-[11px]">
+          {isConnected && deviceInfo ? (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-green-500 font-medium">● CONNECTED</span>
+                <span className="text-muted-foreground">{deviceInfo.model}</span>
+              </div>
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <span>{deviceInfo.resolution}</span>
+                <span>{deviceInfo.serial}</span>
+              </div>
+            </>
+          ) : (
+            <span className="text-muted-foreground/50">
+              ● {status === 'connecting' ? 'CONNECTING' : status === 'error' ? 'ERROR' : 'DISCONNECTED'}
+            </span>
+          )}
+        </div>
+      )}
     </main>
   )
 }
