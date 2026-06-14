@@ -52,7 +52,7 @@ async function main() {
         audio: false,
         control: true,
         powerOn: true,
-        maxSize: 720,
+        maxSize: 1080,
         videoBitRate: 2_000_000,
         videoCodecOptions: new ScrcpyCodecOptions({ profile: 1, level: 4096 }),
       },
