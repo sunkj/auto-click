@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [react()],
   root: 'src/renderer',
   base: './',
+  optimizeDeps: {
+    exclude: ['@yume-chan/scrcpy-decoder-tinyh264'],
+    include: [
+      '@yume-chan/scrcpy-decoder-tinyh264 > yuv-buffer',
+      '@yume-chan/scrcpy-decoder-tinyh264 > yuv-canvas',
+    ],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src/renderer/src'),

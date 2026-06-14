@@ -66,9 +66,35 @@ interface ElectronScriptAPI {
   }>>
 }
 
+/** 投屏帧事件 */
+interface FramePayload {
+  type: 'config' | 'frame' | 'meta'
+  data: number[]
+  keyframe?: boolean
+  pts?: number
+  meta?: { width: number; height: number; codec?: string }
+}
+
+interface ElectronScreenMirrorAPI {
+  getDevices: () => Promise<IpcResult<Array<{ serial: string; model: string; resolution: string }>>>
+  getStatus: () => Promise<IpcResult<{ status: string; serial: string | null }>>
+  connect: (serial?: string) => Promise<IpcResult<{ serial: string; model: string; resolution: string }>>
+  disconnect: () => Promise<IpcResult<void>>
+  tap: (x: number, y: number) => Promise<IpcResult<void>>
+  swipe: (x1: number, y1: number, x2: number, y2: number, duration?: number) => Promise<IpcResult<void>>
+  back: () => Promise<IpcResult<void>>
+  home: () => Promise<IpcResult<void>>
+  text: (t: string) => Promise<IpcResult<void>>
+  onFrame: (callback: (event: FramePayload) => void) => () => void
+  onConnected: (callback: (status: string) => void) => () => void
+  onDisconnected: (callback: () => void) => () => void
+  onError: (callback: (error: string) => void) => () => void
+}
+
 interface Window {
   electronAPI: {
     platform: string
     script: ElectronScriptAPI
+    screenMirror: ElectronScreenMirrorAPI
   }
 }

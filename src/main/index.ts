@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import { registerScriptHandlers } from './script'
+import { registerScrcpyHandlers } from './ScreenMirror'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -34,6 +35,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // 注册 IPC 处理器（窗口创建前注册，确保渲染进程就绪后可用）
   registerScriptHandlers()
+  registerScrcpyHandlers()
 
   createWindow()
 

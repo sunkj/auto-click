@@ -14,7 +14,8 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onTogglePanels, panelsVisible }: LandingPageProps) {
-  const { connect } = useDeviceStore()
+  const { status, errorMsg, connect } = useDeviceStore()
+  const isLoading = status === 'connecting'
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
@@ -61,11 +62,12 @@ export function LandingPage({ onTogglePanels, panelsVisible }: LandingPageProps)
           {/* Connect Button */}
           <Button
             onClick={connect}
+            disabled={isLoading}
             size="lg"
             className="h-12 px-8 text-base gap-2 shadow-md"
           >
             <Smartphone className="h-5 w-5" />
-            连接设备
+            {isLoading ? '连接中...' : '连接设备'}
           </Button>
 
           {/* Instructions */}

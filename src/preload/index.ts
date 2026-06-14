@@ -88,10 +88,66 @@ const scriptAPI = {
 }
 
 // =============================================================================
+// 投屏管理 IPC 常量 + API
+// =============================================================================
+
+const SMC = {
+  CONNECT: 'scrcpy:connect',
+  DISCONNECT: 'scrcpy:disconnect',
+  GET_DEVICES: 'scrcpy:getDevices',
+  GET_STATUS: 'scrcpy:getStatus',
+  TAP: 'scrcpy:tap',
+  SWIPE: 'scrcpy:swipe',
+  BACK: 'scrcpy:back',
+  HOME: 'scrcpy:home',
+  TEXT: 'scrcpy:text',
+  FRAME: 'scrcpy:frame',
+  CONNECTED: 'scrcpy:connected',
+  DISCONNECTED: 'scrcpy:disconnected',
+  ERROR: 'scrcpy:error',
+} as const
+
+const screenMirrorAPI = {
+  getDevices: () => ipcRenderer.invoke(SMC.GET_DEVICES),
+  getStatus: () => ipcRenderer.invoke(SMC.GET_STATUS),
+  connect: (serial?: string) => ipcRenderer.invoke(SMC.CONNECT, serial),
+  disconnect: () => ipcRenderer.invoke(SMC.DISCONNECT),
+  tap: (x: number, y: number) => ipcRenderer.invoke(SMC.TAP, x, y),
+  swipe: (x1: number, y1: number, x2: number, y2: number, duration?: number) =>
+    ipcRenderer.invoke(SMC.SWIPE, x1, y1, x2, y2, duration),
+  back: () => ipcRenderer.invoke(SMC.BACK),
+  home: () => ipcRenderer.invoke(SMC.HOME),
+  text: (t: string) => ipcRenderer.invoke(SMC.TEXT, t),
+
+  // 帧事件监听
+  onFrame: (callback: (event: unknown) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on(SMC.FRAME, handler)
+    return () => ipcRenderer.removeListener(SMC.FRAME, handler)
+  },
+  onConnected: (callback: (status: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data as string)
+    ipcRenderer.on(SMC.CONNECTED, handler)
+    return () => ipcRenderer.removeListener(SMC.CONNECTED, handler)
+  },
+  onDisconnected: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on(SMC.DISCONNECTED, handler)
+    return () => ipcRenderer.removeListener(SMC.DISCONNECTED, handler)
+  },
+  onError: (callback: (error: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data as string)
+    ipcRenderer.on(SMC.ERROR, handler)
+    return () => ipcRenderer.removeListener(SMC.ERROR, handler)
+  },
+}
+
+// =============================================================================
 // 暴露安全 API 到渲染进程
 // =============================================================================
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   script: scriptAPI,
+  screenMirror: screenMirrorAPI,
 })
