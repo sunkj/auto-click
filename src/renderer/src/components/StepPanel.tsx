@@ -19,6 +19,9 @@ import {
   Edit2,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   click: MousePointerClick,
@@ -30,7 +33,42 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 export function StepPanel() {
   const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript } = useScriptStore()
   const [stepDialogOpen, setStepDialogOpen] = useState(false)
+  const [editScriptOpen, setEditScriptOpen] = useState(false)
+  const [editScriptName, setEditScriptName] = useState('')
+  const [deleteStepTarget, setDeleteStepTarget] = useState<Step | null>(null)
+  const [editingStep, setEditingStep] = useState<Step | null>(null)
   const currentScript = scripts.find((s) => s.id === currentScriptId)
+
+  // 打开编辑脚本弹窗
+  const handleOpenEditScript = () => {
+    if (!currentScript) return
+    setEditScriptName(currentScript.name.replace('.js', ''))
+    setEditScriptOpen(true)
+  }
+
+  // 保存脚本名称
+  const handleSaveScriptName = async () => {
+    if (!currentScript || !editScriptName.trim()) return
+    const name = editScriptName.trim().endsWith('.js') ? editScriptName.trim() : editScriptName.trim() + '.js'
+    await useScriptStore.getState().updateScript(currentScript.id, { name })
+    setEditScriptOpen(false)
+  }
+
+  // 确认删除步骤
+  const handleConfirmDeleteStep = () => {
+    if (!deleteStepTarget) return
+    const stepIdNum = Number(deleteStepTarget.id)
+    if (!isNaN(stepIdNum)) {
+      useScriptStore.getState().deleteStep(stepIdNum)
+    }
+    setDeleteStepTarget(null)
+  }
+
+  // 打开编辑步骤弹窗
+  const handleOpenEditStep = (step: Step) => {
+    setEditingStep(step)
+    setStepDialogOpen(true)
+  }
 
   if (!currentScriptId || !currentScript) {
     return (
@@ -49,6 +87,9 @@ export function StepPanel() {
   }
 
   const steps = getStepsForScript(currentScriptId)
+  const selectedStepIndex = selectedStepId
+    ? steps.findIndex((s) => s.id === selectedStepId) + 1
+    : 0
 
   return (
     <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
@@ -75,7 +116,7 @@ export function StepPanel() {
             <CircleDot className="h-4 w-4 text-red-500" />
           </Button>
           <div className="mx-1 h-4 w-px bg-border" />
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑">
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑脚本" onClick={handleOpenEditScript}>
             <Edit2 className="h-4 w-4" />
           </Button>
         </div>
@@ -92,7 +133,14 @@ export function StepPanel() {
           添加步骤
         </Button>
       </div>
-      <NewStepDialog open={stepDialogOpen} onOpenChange={setStepDialogOpen} />
+      <NewStepDialog
+        open={stepDialogOpen}
+        onOpenChange={(open) => {
+          setStepDialogOpen(open)
+          if (!open) setEditingStep(null)
+        }}
+        editStep={editingStep}
+      />
       {/* Step List */}
       <ScrollArea className="flex-1">
         {steps.length === 0 ? (
@@ -135,11 +183,21 @@ export function StepPanel() {
                   {/* Operations Row (when selected) */}
                   {isSelected && (
                     <div className="flex items-center gap-1 px-3 pb-2 pl-[60px] pt-2 border-b border-border/50">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 px-2"
+                        onClick={() => handleOpenEditStep(step)}
+                      >
                         <SquarePen className="h-3 w-3" />
                         编辑
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2 text-destructive hover:text-destructive">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1 px-2 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteStepTarget(step)}
+                      >
                         <Trash2 className="h-3 w-3" />
                         删除
                       </Button>
@@ -161,9 +219,48 @@ export function StepPanel() {
 
       {/* Bottom Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-t px-3 text-[12px]">
-        <span className="text-muted-foreground/50">● Step 1/5</span>
+        <span className="text-muted-foreground/50">
+          ● Step {selectedStepIndex}/{steps.length || '-'}
+        </span>
         <span className="text-muted-foreground/50">Status: Success</span>
       </div>
+
+      {/* 编辑脚本名称弹窗 */}
+      <Dialog open={editScriptOpen} onOpenChange={setEditScriptOpen}>
+        <DialogHeader>
+          <DialogTitle>编辑脚本</DialogTitle>
+          <DialogDescription>修改脚本名称</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5 py-2">
+          <label className="text-xs font-medium text-foreground">脚本名称</label>
+          <Input
+            placeholder="输入脚本名称..."
+            value={editScriptName}
+            onChange={(e) => setEditScriptName(e.target.value)}
+            className="h-8 text-sm"
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => setEditScriptOpen(false)}>
+            取消
+          </Button>
+          <Button size="sm" onClick={handleSaveScriptName} disabled={!editScriptName.trim()}>
+            保存
+          </Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* 删除步骤确认框 */}
+      <ConfirmDialog
+        open={!!deleteStepTarget}
+        onOpenChange={(open) => { if (!open) setDeleteStepTarget(null) }}
+        title="删除步骤"
+        description={`确定要删除步骤 ${deleteStepTarget?.index}（${deleteStepTarget?.description || capitalize(deleteStepTarget?.type || '')}）吗？此操作不可撤销。`}
+        confirmText="删除"
+        variant="destructive"
+        onConfirm={handleConfirmDeleteStep}
+      />
     </aside>
   )
 }

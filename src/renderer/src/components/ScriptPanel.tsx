@@ -105,7 +105,7 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
 }
 
 export function ScriptPanel() {
-  const { scripts } = useScriptStore()
+  const { scripts, loading } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Script | null>(null)
@@ -117,7 +117,11 @@ export function ScriptPanel() {
 
   const handleDelete = () => {
     if (!deleteTarget) return
-    // TODO: actually remove from store/persistence
+    if (deleteTarget.type === 'folder') {
+      useScriptStore.getState().deleteFolder(deleteTarget.id)
+    } else {
+      useScriptStore.getState().deleteScript(deleteTarget.id)
+    }
     setDeleteTarget(null)
   }
 
@@ -137,7 +141,7 @@ export function ScriptPanel() {
           onClick={() => setDialogOpen(true)}
         >
           <FilePlus className="h-3.5 w-3.5" />
-          新建脚本
+          新建脚本/目录
         </Button>
       </div>
       <NewScriptDialog open={dialogOpen} onOpenChange={setDialogOpen} />
@@ -155,7 +159,12 @@ export function ScriptPanel() {
               ))}
             </div>
           )}
-          {scripts.length === 0 && (
+          {loading && scripts.length === 0 && (
+            <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
+              加载中...
+            </div>
+          )}
+          {!loading && scripts.length === 0 && (
             <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
               暂无脚本
             </div>

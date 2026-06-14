@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { useScriptStore, Step } from '@/stores/scriptStore'
 import {
   MousePointerClick,
   Keyboard,
@@ -15,6 +16,7 @@ type StepType = 'click' | 'type' | 'swipe' | 'script'
 interface NewStepDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  editStep?: Step | null
 }
 
 const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -24,36 +26,77 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   script: { label: '脚本', icon: FileCode, color: 'text-orange-500' },
 }
 
-export function NewStepDialog({ open, onOpenChange }: NewStepDialogProps) {
-  const [stepType, setStepType] = useState<StepType>('click')
-  const [params, setParams] = useState<Record<string, string>>({
-    x: '',
-    y: '',
-    description: '',
-    text: '',
-    direction: 'Up',
-    duration: '',
-    scriptName: '',
-  })
+function paramsFromStep(step: Step): Record<string, string> {
+  const p: Record<string, string> = { ...step.params }
+  if (!p.description) p.description = ''
+  if (!p.direction) p.direction = 'Up'
+  if (!p.duration) p.duration = ''
+  if (!p.text) p.text = ''
+  if (!p.scriptName) p.scriptName = ''
+  if (!p.x) p.x = ''
+  if (!p.y) p.y = ''
+  return p
+}
+
+export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
+  const isEditMode = !!editStep
+
+  const [stepType, setStepType] = useState<StepType>(editStep?.type ?? 'click')
+  const [params, setParams] = useState<Record<string, string>>(
+    editStep ? paramsFromStep(editStep) : {
+      x: '',
+      y: '',
+      description: '',
+      text: '',
+      direction: 'Up',
+      duration: '',
+      scriptName: '',
+    }
+  )
+
+  // 当 editStep 变化时同步表单
+  useEffect(() => {
+    if (editStep) {
+      setStepType(editStep.type)
+      setParams(paramsFromStep(editStep))
+    } else {
+      setStepType('click')
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', scriptName: '' })
+    }
+  }, [editStep])
 
   const handleParamChange = (key: string, value: string) => {
     setParams((prev) => ({ ...prev, [key]: value }))
   }
 
-  const handleAdd = () => {
-    // TODO: add step to store
-    onOpenChange(false)
-    resetForm()
-  }
+  const handleSave = async () => {
+    const store = useScriptStore.getState()
 
-  const resetForm = () => {
-    setStepType('click')
-    setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', scriptName: '' })
+    if (isEditMode && editStep) {
+      // 编辑模式：更新步骤
+      const stepIdNum = Number(editStep.id)
+      if (!isNaN(stepIdNum)) {
+        try {
+          await store.updateStep(stepIdNum, stepType, params)
+        } catch (error) {
+          console.error('[NewStepDialog] 更新步骤失败:', error)
+        }
+      }
+    } else {
+      // 新建模式：添加步骤
+      const { currentScriptId } = store
+      if (!currentScriptId) return
+      try {
+        await store.addStep(currentScriptId, stepType, params, undefined)
+      } catch (error) {
+        console.error('[NewStepDialog] 添加步骤失败:', error)
+      }
+    }
+    onOpenChange(false)
   }
 
   const handleCancel = () => {
     onOpenChange(false)
-    resetForm()
   }
 
   const types: StepType[] = ['click', 'type', 'swipe', 'script']
@@ -82,15 +125,6 @@ export function NewStepDialog({ open, onOpenChange }: NewStepDialogProps) {
                   className="h-8 text-sm"
                 />
               </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">描述（可选）</label>
-              <Input
-                placeholder='例如: "Login Button"'
-                value={params.description}
-                onChange={(e) => handleParamChange('description', e.target.value)}
-                className="h-8 text-sm"
-              />
             </div>
           </div>
         )
@@ -157,8 +191,8 @@ export function NewStepDialog({ open, onOpenChange }: NewStepDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogHeader>
-        <DialogTitle>添加步骤</DialogTitle>
-        <DialogDescription>选择步骤类型并填写参数</DialogDescription>
+        <DialogTitle>{isEditMode ? '编辑步骤' : '添加步骤'}</DialogTitle>
+        <DialogDescription>{isEditMode ? '修改步骤参数' : '选择步骤类型并填写参数'}</DialogDescription>
       </DialogHeader>
 
       {/* Step Type Selector */}
@@ -194,8 +228,8 @@ export function NewStepDialog({ open, onOpenChange }: NewStepDialogProps) {
         <Button variant="outline" size="sm" onClick={handleCancel}>
           取消
         </Button>
-        <Button size="sm" onClick={handleAdd}>
-          添加
+        <Button size="sm" onClick={handleSave}>
+          {isEditMode ? '保存' : '添加'}
         </Button>
       </DialogFooter>
     </Dialog>
