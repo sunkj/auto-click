@@ -20,4 +20,8 @@ export interface SimpleDeviceInfo {
   serial: string
   model: string
   resolution: string
+  deviceWidth?: number
+  deviceHeight?: number
+  /** 'usb' | 'wi-fi' */
+  transport?: string
 }

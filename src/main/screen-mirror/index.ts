@@ -32,7 +32,7 @@ export function registerScrcpyHandlers(): void {
 
   ipcMain.handle(SMC.GET_DEVICES, async () => {
     try {
-      const devices = adb.getDevices()
+      const devices = await adb.getDevices()
       return { success: true, data: devices }
     } catch (error) {
       return { success: false, error: String(error) }
@@ -44,19 +44,32 @@ export function registerScrcpyHandlers(): void {
       status = 'connecting'
       send(SMC.CONNECTED, 'connecting')
 
-      const devices = adb.getDevices()
+      const devices = await adb.getDevices()
       const target = devices.find((d) => d.serial === serial) || devices[0]
       if (!target) throw new Error('未发现可用设备（请确认 USB 调试已开启）')
 
       ctrl.setSerial(target.serial)
-      deviceModel = adb.getDeviceModel(target.serial)
+      deviceModel = await adb.getDeviceModel(target.serial)
+      const deviceRes = await adb.getDeviceResolution(target.serial)
+      // 判断传输方式：IP:port 格式为无线，否则为 USB
+      const transport = target.serial.includes(':') ? 'wi-fi' : 'usb'
 
       // 启动视频流桥接进程
       bridge.start(target.serial)
 
       status = 'connected'
       send(SMC.CONNECTED, 'connected')
-      return { success: true, data: { serial: target.serial, model: deviceModel, resolution: '' } }
+      return {
+        success: true,
+        data: {
+          serial: target.serial,
+          model: deviceModel,
+          resolution: deviceRes.width ? `${deviceRes.width}x${deviceRes.height}` : '',
+          deviceWidth: deviceRes.width,
+          deviceHeight: deviceRes.height,
+          transport,
+        },
+      }
     } catch (error) {
       status = 'error'
       send(SMC.ERROR, String(error))

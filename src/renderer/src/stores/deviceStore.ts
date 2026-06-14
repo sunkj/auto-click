@@ -4,6 +4,9 @@ interface DeviceInfo {
   serial: string
   model: string
   resolution: string
+  deviceWidth?: number
+  deviceHeight?: number
+  transport?: string
 }
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnecting' | 'error'
@@ -44,6 +47,9 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
             serial: result.data.serial,
             model: result.data.model,
             resolution: result.data.resolution || '未知',
+            deviceWidth: result.data.deviceWidth,
+            deviceHeight: result.data.deviceHeight,
+            transport: result.data.transport,
           },
           errorMsg: '',
         })

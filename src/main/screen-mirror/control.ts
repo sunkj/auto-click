@@ -19,21 +19,21 @@ export const ctrl = {
 
   async tap(x: number, y: number): Promise<void> {
     if (!deviceSerial) throw new Error('未连接设备')
-    adb.shell(deviceSerial, `input tap ${Math.round(x)} ${Math.round(y)}`)
+    await adb.shell(deviceSerial, `input tap ${Math.round(x)} ${Math.round(y)}`)
   },
 
   async swipe(x1: number, y1: number, x2: number, y2: number, duration?: number): Promise<void> {
     if (!deviceSerial) throw new Error('未连接设备')
-    adb.shell(deviceSerial, `input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${duration ?? 200}`)
+    await adb.shell(deviceSerial, `input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${duration ?? 200}`)
   },
 
   async back(): Promise<void> {
     if (!deviceSerial) throw new Error('未连接设备')
-    adb.shell(deviceSerial, 'input keyevent 4')
+    await adb.shell(deviceSerial, 'input keyevent 4')
   },
 
   async home(): Promise<void> {
     if (!deviceSerial) throw new Error('未连接设备')
-    adb.shell(deviceSerial, 'input keyevent 3')
+    await adb.shell(deviceSerial, 'input keyevent 3')
   },
 }

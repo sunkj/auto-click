@@ -12,7 +12,7 @@ import {
   PanelLeftClose,
   Square,
   ArrowLeft,
-  RotateCcw,
+  Home,
 } from 'lucide-react'
 import { ScreenCanvas } from '@/components/ScreenCanvas'
 
@@ -24,18 +24,14 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
   const { status, deviceInfo, errorMsg, connect, disconnect } = useDeviceStore()
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isHovering, setIsHovering] = useState(false)
-  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 })
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMousePos({
-      x: Math.round(e.clientX - rect.left),
-      y: Math.round(e.clientY - rect.top),
-    })
-  }
+  // 仅在画布区域内更新鼠标坐标
+  const handleCanvasMove = (x: number, y: number) => setMousePos({ x, y })
+  const handleCanvasEnter = () => setIsHovering(true)
+  const handleCanvasLeave = () => { setIsHovering(false); setMousePos({ x: 0, y: 0 }) }
 
   return (
     <main className="flex flex-1 flex-col bg-background">
@@ -55,12 +51,12 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
             <span>投屏</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Wifi className="h-3.5 w-3.5" />
-            <span>USB</span>
+            <Wifi className={`h-3.5 w-3.5 ${deviceInfo?.transport === 'wi-fi' ? 'text-blue-400' : 'text-muted-foreground/50'}`} />
+            <span>{deviceInfo?.transport === 'wi-fi' ? 'Wi-Fi' : 'USB'}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5" />
-            <span>{videoSize.width ? `${videoSize.width}×${videoSize.height}` : '1920×1080'}</span>
+            <span>{deviceInfo?.deviceWidth ? `${deviceInfo.deviceWidth}×${deviceInfo.deviceHeight}` : '-'}</span>
           </div>
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1">
@@ -77,7 +73,7 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
               返回
             </Button>
             <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="回到首页" onClick={() => window.electronAPI?.screenMirror?.home()}>
-              <RotateCcw className="h-3 w-3" />
+              <Home className="h-3 w-3" />
               Home
             </Button>
           </div>
@@ -95,12 +91,7 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
       </div>
 
       {/* Content Area */}
-      <div
-        className="flex flex-1 items-center justify-center bg-black/5 relative"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => { setIsHovering(false); setMousePos({ x: 0, y: 0 }) }}
-      >
+      <div className="flex flex-1 items-center justify-center bg-black/5 relative">
         {isLoading ? (
           /* 连接中动画 */
           <div className="flex flex-col items-center gap-5">
@@ -140,7 +131,14 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-2">
-            <ScreenCanvas isConnected={isConnected} />
+            <ScreenCanvas
+              isConnected={isConnected}
+              deviceWidth={deviceInfo?.deviceWidth}
+              deviceHeight={deviceInfo?.deviceHeight}
+              onMouseMove={handleCanvasMove}
+              onMouseEnter={handleCanvasEnter}
+              onMouseLeave={handleCanvasLeave}
+            />
           </div>
         )}
       </div>
