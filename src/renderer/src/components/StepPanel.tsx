@@ -23,6 +23,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
+const stepLabels: Record<string, string> = {
+  click: '点击',
+  type: '输入',
+  swipe: '滑动',
+  longpress: '长按',
+  script: '脚本',
+}
+
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   click: MousePointerClick,
   type: Keyboard,
@@ -182,7 +190,7 @@ export function StepPanel() {
                     </div>
                     {/* Step Content */}
                     <div className="flex-1 min-w-0 mt-[-2px]">
-                      <div className="text-sm font-medium">{capitalize(step.type)}</div>
+                      <div className="text-sm font-medium">{stepLabels[step.type] || step.type}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {step.description}
                       </div>
@@ -229,9 +237,9 @@ export function StepPanel() {
       {/* Bottom Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-t px-3 text-[12px]">
         <span className="text-muted-foreground/50">
-          ● Step {selectedStepIndex}/{steps.length || '-'}
+          ● 步骤 {selectedStepIndex}/{steps.length || '-'}
         </span>
-        <span className="text-muted-foreground/50">Status: Success</span>
+        <span className="text-muted-foreground/50">状态: Success</span>
       </div>
 
       {/* 编辑脚本名称弹窗 */}
@@ -301,7 +309,7 @@ export function StepPanel() {
         open={!!deleteStepTarget}
         onOpenChange={(open) => { if (!open) setDeleteStepTarget(null) }}
         title="删除步骤"
-        description={`确定要删除步骤 ${deleteStepTarget?.index}（${deleteStepTarget?.description || capitalize(deleteStepTarget?.type || '')}）吗？此操作不可撤销。`}
+        description={`确定要删除步骤 ${deleteStepTarget?.index}（${deleteStepTarget?.description || stepLabels[deleteStepTarget?.type || ''] || deleteStepTarget?.type}）吗？此操作不可撤销。`}
         confirmText="删除"
         variant="destructive"
         onConfirm={handleConfirmDeleteStep}
@@ -311,5 +319,5 @@ export function StepPanel() {
 }
 
 function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return stepLabels[str] || str
 }

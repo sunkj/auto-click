@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { version } from '../../../../package.json'
 import { useScriptStore, Script } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -221,7 +222,7 @@ export function ScriptPanel() {
           </Button>
         </div>
         <div className="flex h-[40px] items-center justify-between px-2 py-1 border-t">
-          <span className="text-[10px] text-muted-foreground">v1.0.0</span>
+          <span className="text-[10px] text-muted-foreground">v{version}</span>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-3 w-3" />
           </Button>

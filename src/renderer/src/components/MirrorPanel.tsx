@@ -116,7 +116,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
                 </Button>
                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" disabled={!isConnected} title="回到首页" onClick={() => window.electronAPI?.screenMirror?.home()}>
                   <Home className="h-3 w-3" />
-                  Home
+                  首页
                 </Button>
               </div>
             </>
@@ -196,7 +196,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
           {isConnected && deviceInfo ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-green-500 font-medium">● CONNECTED</span>
+                <span className="text-green-500 font-medium">● 已连接</span>
                 <span className="text-muted-foreground">{deviceInfo.model}</span>
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
@@ -206,7 +206,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             </>
           ) : (
             <span className="text-muted-foreground/50">
-              ● {status === 'connecting' ? 'CONNECTING' : status === 'error' ? 'ERROR' : 'DISCONNECTED'}
+              ● {status === 'connecting' ? '连接中' : status === 'error' ? '错误' : '已断开'}
             </span>
           )}
         </div>

@@ -1,9 +1,9 @@
 /**
  * ADB 命令执行器 — script-engine 独立使用
  *
- * 通过 child_process.exec 直接执行 adb shell 命令，不依赖 screen-mirror。
+ * 通过 child_process 直接执行 adb shell 命令，不依赖 screen-mirror。
  */
-import { exec } from 'child_process'
+import { exec, execFileSync } from 'child_process'
 import { promisify } from 'util'
 
 const asyncExec = promisify(exec)
@@ -54,11 +54,9 @@ export const adbExec = {
   },
 
   async type(serial: string, text: string): Promise<void> {
-    const escaped = text
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
-      .replace(/"/g, '\\"')
-      .replace(/ /g, '%s')
-    await adbShell(serial, `input text ${escaped}`)
+    // 最通用的方式：input text（ASCII 完美支持，中文取决于 Android 版本）
+    execFileSync('adb', ['-s', serial, 'shell', `input text ${text}`], {
+      encoding: 'utf-8', timeout: 10000,
+    })
   },
 }
