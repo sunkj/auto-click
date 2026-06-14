@@ -3,6 +3,7 @@ import path from 'path'
 import { registerScriptHandlers } from './script'
 import { registerScrcpyHandlers } from './screen-mirror'
 import { registerEngineHandlers } from './script-engine'
+import { loadConfig, saveConfig } from './config'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -67,6 +68,9 @@ app.whenReady().then(() => {
   registerScriptHandlers()
   registerScrcpyHandlers()
   registerEngineHandlers()
+  // 配置读写 IPC
+  ipcMain.handle('config:load', () => loadConfig())
+  ipcMain.handle('config:save', (_event, config) => { saveConfig(config); return { success: true } })
 
   createWindow()
 

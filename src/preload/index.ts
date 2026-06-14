@@ -190,6 +190,15 @@ const engineAPI = {
 }
 
 // =============================================================================
+// 配置读写
+// =============================================================================
+
+const configAPI = {
+  load: () => ipcRenderer.invoke('config:load'),
+  save: (config: any) => ipcRenderer.invoke('config:save', config),
+}
+
+// =============================================================================
 // 窗口控制
 // =============================================================================
 
@@ -209,5 +218,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   script: scriptAPI,
   screenMirror: screenMirrorAPI,
   engine: engineAPI,
+  config: configAPI,
   window: windowAPI,
 })
