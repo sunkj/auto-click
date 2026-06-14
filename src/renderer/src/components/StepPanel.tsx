@@ -15,7 +15,6 @@ import {
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
-  Edit2,
   FolderClosed,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
@@ -123,7 +122,7 @@ export function StepPanel() {
           </Button>
           <div className="mx-1 h-4 w-px bg-border" />
           <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑脚本" onClick={handleOpenEditScript}>
-            <Edit2 className="h-4 w-4" />
+            <SquarePen className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -178,7 +177,7 @@ export function StepPanel() {
                       <StepIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                     {/* Step Content */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 mt-[-2px]">
                       <div className="text-sm font-medium">{capitalize(step.type)}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {step.description}

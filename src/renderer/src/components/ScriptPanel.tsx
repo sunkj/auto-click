@@ -66,7 +66,7 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
   return (
     <Card
       className={cn(
-        'cursor-pointer border transition-all duration-150 group',
+        'cursor-pointer border-0 transition-all duration-150 group',
         isSelected
           ? 'border-primary/50 bg-accent shadow-sm'
           : 'border-transparent bg-transparent hover:bg-accent/50'
@@ -149,12 +149,7 @@ export function ScriptPanel() {
   }
 
   return (
-    <aside className="flex w-[240px] min-w-[240px] flex-col border-r bg-card">
-      {/* Header */}
-      <div className="flex h-[40px] items-center px-4 border-b">
-        <h1 className="text-lg font-bold tracking-tight text-foreground">AutoClick</h1>
-      </div>
-
+    <aside className="flex w-[240px] min-w-[240px] flex-col border-r bg-background">
       {/* New Script Button */}
       <div className="px-3 pt-3 pb-2">
         <Button
