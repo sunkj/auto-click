@@ -88,8 +88,13 @@ export class ScriptEngine {
 
       const { scriptId, serial, mode, stepIndex } = task
 
-      // 0. 预取设备分辨率（让 swipe 用缓存，不阻塞后续执行）
+      // 0. 预取设备分辨率 + 加载配置
       adbExec.getResolution(serial).catch(() => {})
+      const { loadConfig } = await import('../config')
+      const config = loadConfig()
+      const stepInterval = config.stepInterval || 0
+      const scriptTimeout = config.scriptTimeout || 0
+      const maxRetries = config.maxRetries || 0
 
       // 1. 加载脚本
       const scriptObj = await this.scriptLoader.load(scriptId)
@@ -108,7 +113,7 @@ export class ScriptEngine {
       }
 
       // 4. 创建上下文
-      const ctx = createExecutionContext(scriptId, serial, stepsToRun, scriptObj.stepInterval || 0)
+      const ctx = createExecutionContext(scriptId, serial, stepsToRun, stepInterval)
 
       // 5. 顺序执行
       const totalSteps = stepsToRun.length
@@ -116,14 +121,20 @@ export class ScriptEngine {
       const startTime = Date.now()
 
       for (let i = 0; i < totalSteps; i++) {
+        // 检查超时
+        if (scriptTimeout > 0 && Date.now() - startTime > scriptTimeout * 1000) {
+          this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'error', error: '脚本执行超时' })
+          this.queue.complete({
+            success: false, scriptId, totalSteps, completedSteps,
+            duration: Date.now() - startTime, error: '脚本执行超时',
+          })
+          return
+        }
+
         if (this.shouldStop) {
           this.queue.complete({
-            success: false,
-            scriptId,
-            totalSteps,
-            completedSteps,
-            duration: Date.now() - startTime,
-            error: '执行已停止',
+            success: false, scriptId, totalSteps, completedSteps,
+            duration: Date.now() - startTime, error: '执行已停止',
           })
           return
         }
@@ -133,18 +144,18 @@ export class ScriptEngine {
         // 发送 step-start
         this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'start' })
 
-        // 执行步骤
-        const result = await this.stepExecutor.execute(stepsToRun[i], ctx)
+        // 执行步骤（带重试）
+        let result = await this.stepExecutor.execute(stepsToRun[i], ctx)
+        for (let retry = 0; retry < maxRetries && !result.success; retry++) {
+          this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'start' })
+          result = await this.stepExecutor.execute(stepsToRun[i], ctx)
+        }
 
         if (!result.success) {
           this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'error', error: result.error })
           this.queue.complete({
-            success: false,
-            scriptId,
-            totalSteps,
-            completedSteps,
-            duration: Date.now() - startTime,
-            error: result.error,
+            success: false, scriptId, totalSteps, completedSteps,
+            duration: Date.now() - startTime, error: result.error,
           })
           return
         }
@@ -152,10 +163,10 @@ export class ScriptEngine {
         completedSteps++
         this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'end' })
 
-        // 步骤间延迟
+        // 步骤间延迟（优先步骤级 delay，其次配置的 stepInterval）
         if (i < totalSteps - 1) {
-          const delay = stepsToRun[i].delay ?? scriptObj.stepInterval ?? 0
-          if (delay > 0) await this.sleep(delay)
+          const delay = stepsToRun[i].delay ?? stepInterval
+          if (delay > 0) await this.sleep(delay * 1000)
         }
       }
 

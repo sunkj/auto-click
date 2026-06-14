@@ -353,6 +353,11 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   /**
    * 全量执行当前脚本
    */
+  stopExecution: () => {
+    window.electronAPI?.engine?.stopExecution()
+    set({ executingStepIndex: null })
+  },
+
   runScript: async (scriptId: string) => {
     const eng = window.electronAPI?.engine
     if (!eng) return

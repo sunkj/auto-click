@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useScriptStore, Step } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import {
   Play,
-  CircleDot,
+  Square,
   SquarePen,
   Trash2,
   StepForward,
@@ -40,7 +40,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export function StepPanel() {
-  const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript, executingStepIndex, runScript, runStep } = useScriptStore()
+  const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript, executingStepIndex, runScript, runStep, stopExecution } = useScriptStore()
   const [stepDialogOpen, setStepDialogOpen] = useState(false)
   const [editScriptOpen, setEditScriptOpen] = useState(false)
   const [editScriptName, setEditScriptName] = useState('')
@@ -85,6 +85,22 @@ export function StepPanel() {
     setStepDialogOpen(true)
   }
 
+  // 监听引擎执行进度，实时更新高亮
+  useEffect(() => {
+    const eng = window.electronAPI?.engine
+    if (!eng) return
+    const unsub = eng.onStepStart((event: any) => {
+      if (event.status === 'start') {
+        useScriptStore.getState().setExecutingStep(event.stepIndex)
+      } else if (event.status === 'error') {
+        useScriptStore.getState().setExecutingStep(null)
+      } else if (event.status === 'end' && event.stepIndex === -1) {
+        useScriptStore.getState().setExecutingStep(null)
+      }
+    })
+    return unsub
+  }, [])
+
   if (!currentScriptId || !currentScript) {
     return (
       <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
@@ -127,8 +143,8 @@ export function StepPanel() {
           <Button variant="ghost" size="icon" className="h-7 w-7" title="运行全部" onClick={() => runScript(currentScriptId!)} disabled={executingStepIndex !== null}>
             <Play className={`h-4 w-4 ${executingStepIndex !== null ? 'text-muted-foreground' : 'text-green-500'}`} />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="录制">
-            <CircleDot className="h-4 w-4 text-red-500" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="停止执行" onClick={stopExecution} disabled={executingStepIndex === null}>
+            <Square className="h-4 w-4 text-red-500" />
           </Button>
           <div className="mx-1 h-4 w-px bg-border" />
           <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑脚本" onClick={handleOpenEditScript}>
@@ -236,11 +252,11 @@ export function StepPanel() {
 
       {/* Bottom Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-t px-3 text-[12px]">
-        <span className="text-muted-foreground/50">
-          ● 步骤 {executingStepIndex !== null ? executingStepIndex + 1 : selectedStepIndex}/{steps.length || '-'}
+        <span className="text-muted-foreground">
+          步骤 {executingStepIndex !== null ? executingStepIndex + 1 : selectedStepIndex}/{steps.length || '-'}
         </span>
         <span className={`text-[11px] ${executingStepIndex !== null ? 'text-yellow-500' : 'text-muted-foreground/50'}`}>
-          {executingStepIndex !== null ? '运行中' : '停止'}
+          {executingStepIndex !== null ? '● 运行中' : '● 停止'}
         </span>
       </div>
 
