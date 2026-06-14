@@ -47,7 +47,10 @@ export const adbExec = {
   },
 
   async longPress(serial: string, x: number, y: number, durationMs: number): Promise<void> {
-    await adbShell(serial, `input swipe ${Math.round(x)} ${Math.round(y)} ${Math.round(x)} ${Math.round(y)} ${durationMs}`)
+    // 用 1px 偏移确保 Android 识别为滑动（非点击），起止点几乎重合实现长按
+    const px = Math.round(x)
+    const py = Math.round(y)
+    await adbShell(serial, `input swipe ${px} ${py} ${px + 1} ${py + 1} ${durationMs}`)
   },
 
   async type(serial: string, text: string): Promise<void> {

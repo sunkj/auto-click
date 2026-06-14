@@ -373,14 +373,19 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
    */
   runStep: async (scriptId: string, stepIndex: number) => {
     const eng = window.electronAPI?.engine
-    if (!eng) return
+    if (!eng) { console.error('[ScriptStore] engine API 不可用'); return }
     const serial = useDeviceStore.getState().deviceInfo?.serial
+    console.log('[ScriptStore] runStep:', { scriptId, stepIndex, serial, deviceInfo: useDeviceStore.getState().deviceInfo })
     if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
     set({ executingStepIndex: stepIndex })
     try {
-      await eng.runStep(scriptId, stepIndex, serial)
+      const result = await eng.runStep(scriptId, stepIndex, serial)
+      console.log('[ScriptStore] 执行结果:', result)
+      if (result && !result.success) {
+        console.error('[ScriptStore] 执行失败:', result.error)
+      }
     } catch (err) {
-      console.error('[ScriptStore] 单步执行失败:', err)
+      console.error('[ScriptStore] 单步执行异常:', err)
     } finally {
       set({ executingStepIndex: null })
     }
