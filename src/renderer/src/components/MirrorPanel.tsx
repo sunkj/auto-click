@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -8,116 +8,26 @@ import {
   Monitor,
   Wifi,
   ArrowUpDown,
-  RefreshCw,
   Crosshair,
   PanelLeftClose,
   Square,
   ArrowLeft,
   RotateCcw,
 } from 'lucide-react'
+import { ScreenCanvas } from '@/components/ScreenCanvas'
 
 interface MirrorPanelProps {
   onTogglePanels?: () => void
 }
 
-/**
- * 使用 TinyH264Decoder 渲染视频流
- *
- * 将 IPC 帧事件转换为 ReadableStream，pipe 到 decoder.writable，
- * decoder 自动渲染到绑定的 Canvas 元素。
- */
-function useScrcpyStream(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
-  const decoderRef = useRef<any>(null)
-  const sizeRef = useRef({ width: 0, height: 0 })
-  const frameCountRef = useRef(0)
-  const streamRef = useRef<ReadableStream<any> | null>(null)
-  const controllerRef = useRef<ReadableStreamDefaultController<any> | null>(null)
-  const [streamActive, setStreamActive] = useState(false)
-
-  useEffect(() => {
-    const api = window.electronAPI?.screenMirror
-    if (!api) return
-
-    // 1. 创建 ReadableStream（持久化到 ref）
-    if (!streamRef.current) {
-      streamRef.current = new ReadableStream({
-        start(controller) {
-          controllerRef.current = controller
-        },
-        cancel() {
-          controllerRef.current = null
-        },
-      })
-    }
-
-    // 2. 惰性初始化解码器（首次有帧时初始化）
-    let decoderInitialized = false
-    const ensureDecoder = async () => {
-      if (decoderInitialized || decoderRef.current) return
-      if (!canvasRef.current) return
-      decoderInitialized = true
-      try {
-        const { TinyH264Decoder } = await import('@yume-chan/scrcpy-decoder-tinyh264')
-        if (!canvasRef.current) return
-        const decoder = new TinyH264Decoder({ canvas: canvasRef.current })
-        decoderRef.current = decoder
-        decoder.sizeChanged(({ width, height }: { width: number; height: number }) => {
-          sizeRef.current = { width, height }
-        })
-        // pipe stream → decoder（只要一次）
-        if (streamRef.current) {
-          streamRef.current.pipeTo(decoder.writable).catch(() => {})
-        }
-      } catch (e) {
-        console.error('[MirrorPanel] 解码器初始化失败:', e)
-      }
-    }
-
-    // 3. IPC → stream
-    const unsubFrame = api.onFrame((payload) => {
-      if (payload.type === 'config') {
-        ensureDecoder()
-        controllerRef.current?.enqueue({
-          type: 'configuration',
-          data: new Uint8Array(payload.data),
-        })
-      } else if (payload.type === 'frame') {
-        frameCountRef.current++
-        setStreamActive(true)
-        ensureDecoder()
-        controllerRef.current?.enqueue({
-          type: 'data',
-          data: new Uint8Array(payload.data),
-          keyframe: payload.keyframe,
-          pts: payload.pts,
-        })
-      }
-    })
-    const unsubError = api.onError((msg) => {
-      console.error('[MirrorPanel] 流错误:', msg)
-    })
-
-    return () => {
-      unsubFrame()
-      unsubError()
-      // 注意: 不清除 ref，让解码器跨 StrictMode 重用
-    }
-  }, [])
-
-  return { streamActive }
-}
-
 export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
   const { status, deviceInfo, errorMsg, connect, disconnect } = useDeviceStore()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isHovering, setIsHovering] = useState(false)
   const [videoSize, setVideoSize] = useState({ width: 0, height: 0 })
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
-
-  useScrcpyStream(canvasRef)
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -126,19 +36,6 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
       y: Math.round(e.clientY - rect.top),
     })
   }
-
-  const handleCanvasClick = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const api = window.electronAPI?.screenMirror
-    if (!api || !isConnected) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = Math.round((e.clientX - rect.left) * scaleX)
-    const y = Math.round((e.clientY - rect.top) * scaleY)
-    await api.tap(x, y)
-  }, [isConnected])
 
   return (
     <main className="flex flex-1 flex-col bg-background">
@@ -227,12 +124,7 @@ export function MirrorPanel({ onTogglePanels }: MirrorPanelProps) {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-2">
-            <canvas
-              ref={canvasRef}
-              onClick={handleCanvasClick}
-              className="rounded-lg border shadow-inner cursor-crosshair max-w-[95%] max-h-[calc(100vh-120px)] object-contain"
-              style={{ background: '#000' }}
-            />
+            <ScreenCanvas isConnected={isConnected} />
           </div>
         )}
       </div>
