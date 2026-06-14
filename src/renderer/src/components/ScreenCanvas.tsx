@@ -184,8 +184,8 @@ export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, isMinimiz
   )
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    onMouseMove?.(Math.round(e.clientX - rect.left), Math.round(e.clientY - rect.top))
+    const dev = toDevice(e.clientX, e.clientY)
+    if (dev) onMouseMove?.(dev.x, dev.y)
   }
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

@@ -30,7 +30,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export function StepPanel() {
-  const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript } = useScriptStore()
+  const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript, executingStepIndex, runScript, runStep } = useScriptStore()
   const [stepDialogOpen, setStepDialogOpen] = useState(false)
   const [editScriptOpen, setEditScriptOpen] = useState(false)
   const [editScriptName, setEditScriptName] = useState('')
@@ -114,8 +114,8 @@ export function StepPanel() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="运行全部">
-            <Play className="h-4 w-4 text-green-500" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="运行全部" onClick={() => runScript(currentScriptId!)} disabled={executingStepIndex !== null}>
+            <Play className={`h-4 w-4 ${executingStepIndex !== null ? 'text-muted-foreground' : 'text-green-500'}`} />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="录制">
             <CircleDot className="h-4 w-4 text-red-500" />
@@ -158,6 +158,7 @@ export function StepPanel() {
             {steps.map((step: Step, _idx: number) => {
               const StepIcon = stepIcons[step.type] || CircleDot
               const isSelected = selectedStepId === step.id
+              const isExecuting = executingStepIndex === (step.index - 1)
               const isLast = _idx === steps.length - 1
 
               return (
@@ -166,6 +167,7 @@ export function StepPanel() {
                     onClick={() => setSelectedStep(isSelected ? null : step.id)}
                     className={cn(
                       'w-full flex items-start gap-3 px-3 py-3 text-left transition-colors',
+                      isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500' : '',
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                     )}
                   >
@@ -206,7 +208,7 @@ export function StepPanel() {
                         <Trash2 className="h-3 w-3" />
                         删除
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2">
+                      <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2" onClick={() => runStep(currentScriptId!, step.index - 1)} disabled={executingStepIndex !== null}>
                         <StepForward className="h-3 w-3" />
                         运行
                       </Button>

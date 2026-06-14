@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useDeviceStore } from '@/stores/deviceStore'
 
 // =============================================================================
 // 类型定义（兼容原有组件接口）
@@ -344,6 +345,44 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
       }
     } catch (error) {
       console.error('[ScriptStore] 刷新步骤失败:', error)
+    }
+  },
+
+  // ---- 脚本执行 ----
+
+  /**
+   * 全量执行当前脚本
+   */
+  runScript: async (scriptId: string) => {
+    const eng = window.electronAPI?.engine
+    if (!eng) return
+    const serial = useDeviceStore.getState().deviceInfo?.serial
+    if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    set({ executingStepIndex: 0 })
+    try {
+      await eng.runScript(scriptId, serial)
+    } catch (err) {
+      console.error('[ScriptStore] 执行失败:', err)
+    } finally {
+      set({ executingStepIndex: null })
+    }
+  },
+
+  /**
+   * 单步执行
+   */
+  runStep: async (scriptId: string, stepIndex: number) => {
+    const eng = window.electronAPI?.engine
+    if (!eng) return
+    const serial = useDeviceStore.getState().deviceInfo?.serial
+    if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    set({ executingStepIndex: stepIndex })
+    try {
+      await eng.runStep(scriptId, stepIndex, serial)
+    } catch (err) {
+      console.error('[ScriptStore] 单步执行失败:', err)
+    } finally {
+      set({ executingStepIndex: null })
     }
   },
 }))

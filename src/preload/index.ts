@@ -147,6 +147,49 @@ const screenMirrorAPI = {
 // =============================================================================
 
 // =============================================================================
+// 脚本引擎 API
+// =============================================================================
+
+const ENGINE = {
+  RUN: 'engine:run',
+  RUN_STEP: 'engine:runStep',
+  STOP: 'engine:stop',
+  GET_STATUS: 'engine:getStatus',
+  STEP_START: 'engine:stepStart',
+  STEP_END: 'engine:stepEnd',
+  STEP_ERROR: 'engine:stepError',
+  COMPLETE: 'engine:complete',
+}
+
+const engineAPI = {
+  runScript: (scriptId: string, serial: string) => ipcRenderer.invoke(ENGINE.RUN, scriptId, serial),
+  runStep: (scriptId: string, stepIndex: number, serial: string) => ipcRenderer.invoke(ENGINE.RUN_STEP, scriptId, stepIndex, serial),
+  stopExecution: () => ipcRenderer.invoke(ENGINE.STOP),
+  getStatus: () => ipcRenderer.invoke(ENGINE.GET_STATUS),
+
+  onStepStart: (callback: (event: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(ENGINE.STEP_START, handler)
+    return () => ipcRenderer.removeListener(ENGINE.STEP_START, handler)
+  },
+  onStepEnd: (callback: (event: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(ENGINE.STEP_END, handler)
+    return () => ipcRenderer.removeListener(ENGINE.STEP_END, handler)
+  },
+  onStepError: (callback: (event: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(ENGINE.STEP_ERROR, handler)
+    return () => ipcRenderer.removeListener(ENGINE.STEP_ERROR, handler)
+  },
+  onComplete: (callback: (event: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(ENGINE.COMPLETE, handler)
+    return () => ipcRenderer.removeListener(ENGINE.COMPLETE, handler)
+  },
+}
+
+// =============================================================================
 // 窗口控制
 // =============================================================================
 
@@ -165,5 +208,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   script: scriptAPI,
   screenMirror: screenMirrorAPI,
+  engine: engineAPI,
   window: windowAPI,
 })
