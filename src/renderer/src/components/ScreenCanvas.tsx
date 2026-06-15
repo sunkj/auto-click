@@ -223,8 +223,6 @@ export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, isMinimiz
     }
   }, [toDevice])
 
-  if (!isConnected) return null
-
   return (
     <canvas
       ref={canvasRef}

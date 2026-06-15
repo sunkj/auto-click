@@ -108,7 +108,20 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     try {
       const result = await api.getAllScripts()
       if (result.success && result.data) {
-        set({ scripts: result.data })
+        const scripts = result.data
+        // 自动展开所有文件夹
+        const folderIds = scripts
+          .filter((s) => s.type === 'folder')
+          .map((s) => s.id)
+        set({
+          scripts,
+          expandedFolders: new Set(folderIds),
+        })
+        // 默认选中第一个脚本
+        const firstScript = scripts.find((s) => s.type === 'script')
+        if (firstScript) {
+          set({ currentScriptId: firstScript.id })
+        }
       }
     } catch (error) {
       console.error('[ScriptStore] 加载脚本失败:', error)

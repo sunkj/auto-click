@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -31,6 +31,32 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
+
+  // 连接后过渡：成功后继续 loading 3 秒，再隐藏遮盖层露出投屏
+  const [hideOverlay, setHideOverlay] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const prevStatusRef = useRef(status)
+
+  useEffect(() => {
+    const prev = prevStatusRef.current
+    prevStatusRef.current = status
+
+    if (status !== 'connected') {
+      setHideOverlay(false)
+      setIsTransitioning(false)
+      return
+    }
+
+    // 从 connecting → connected：进入过渡期，继续 loading 3 秒
+    if (prev === 'connecting' && status === 'connected') {
+      setIsTransitioning(true)
+      const timer = setTimeout(() => {
+        setIsTransitioning(false)
+        setHideOverlay(true)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [status])
 
   // 仅在画布区域内更新鼠标坐标
   const handleCanvasMove = (x: number, y: number) => setMousePos({ x, y })
@@ -136,58 +162,67 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
         )}
       </div>
 
-      {/* Content Area */}
-      <div className="flex flex-1 items-center justify-center bg-black/5 relative">
-        {isLoading ? (
-          /* 连接中动画 */
-          <div className="flex flex-col items-center gap-5">
-            <div className="relative w-16 h-16">
-              <div className="absolute inset-0 rounded-full border-2 border-muted-foreground/20" />
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
-              <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
-              <Smartphone className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/40" />
-            </div>
-            <div className="text-sm text-muted-foreground">正在连接设备...</div>
-            <div className="flex gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          </div>
-        ) : !isConnected ? (
-          <div className="flex flex-col items-center gap-6 max-w-sm text-center select-none">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-                <Smartphone className="h-10 w-10 text-muted-foreground/30" />
+      {/* Content Area — 投屏在底层，遮盖层在顶层 */}
+      <div className="flex flex-1 items-center justify-center bg-black/5 relative overflow-hidden">
+        {/* 底层：投屏画布（始终渲染） */}
+        <div className={`flex flex-col items-center absolute inset-0 ${isMinimized ? 'gap-0 py-0' : 'gap-2 py-2'}`}>
+          <ScreenCanvas
+            isConnected={isConnected}
+            deviceWidth={deviceInfo?.deviceWidth}
+            deviceHeight={deviceInfo?.deviceHeight}
+            isMinimized={isMinimized}
+            onMouseMove={handleCanvasMove}
+            onMouseEnter={handleCanvasEnter}
+            onMouseLeave={handleCanvasLeave}
+          />
+        </div>
+
+        {/* 顶层：遮盖层（连接按钮 / 加载动画），连接成功 3 秒后渐出 */}
+        <div
+          className="flex flex-col items-center justify-center absolute inset-0 z-10 bg-background transition-opacity duration-700 ease-in-out"
+          style={{
+            opacity: hideOverlay ? 0 : 1,
+            pointerEvents: hideOverlay ? 'none' : 'auto',
+          }}
+        >
+          {isLoading || isTransitioning ? (
+            <div className="flex flex-col items-center gap-5">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-2 border-muted-foreground/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+                <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
+                <Smartphone className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/40" />
+              </div>
+              <div className="text-sm text-muted-foreground">{isTransitioning ? '连接成功，正在加载投屏...' : '正在连接设备...'}</div>
+              <div className="flex gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
-            <Button onClick={connect} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
-              <Smartphone className="h-5 w-5" />
-              连接设备
-            </Button>
-            {errorMsg && (
-              <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-300 text-sm max-w-xs">
-                {errorMsg}
+          ) : (
+            <div className="flex flex-col items-center gap-6 max-w-sm text-center select-none">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                  <Smartphone className="h-10 w-10 text-muted-foreground/30" />
+                </div>
               </div>
-            )}
-            <div className="space-y-1 text-xs text-muted-foreground/60">
-              <p>请通过 USB 连接您的 Android 设备</p>
-              <p>确保已开启开发者选项和 USB 调试</p>
+              <Button onClick={connect} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
+                <Smartphone className="h-5 w-5" />
+                连接设备
+              </Button>
+              {errorMsg && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-red-300 text-sm max-w-xs">
+                  {errorMsg}
+                </div>
+              )}
+              <div className="space-y-1 text-xs text-muted-foreground/60">
+                <p>请通过 USB 连接您的 Android 设备</p>
+                <p>确保已开启开发者选项和 USB 调试</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className={`flex flex-col items-center ${isMinimized ? 'gap-0 py-0' : 'gap-2 py-2'}`}>
-            <ScreenCanvas
-              isConnected={isConnected}
-              deviceWidth={deviceInfo?.deviceWidth}
-              deviceHeight={deviceInfo?.deviceHeight}
-              isMinimized={isMinimized}
-              onMouseMove={handleCanvasMove}
-              onMouseEnter={handleCanvasEnter}
-              onMouseLeave={handleCanvasLeave}
-            />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Bottom Device Info Bar */}

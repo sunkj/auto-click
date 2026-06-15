@@ -15,7 +15,7 @@ export interface AppConfig {
 
 const DEFAULT_CONFIG: AppConfig = {
   scriptTimeout: 1800,
-  stepInterval: 0.5,
+  stepInterval: 3,
   maxRetries: 3,
 }
 
