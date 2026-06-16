@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, nativeImage, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import path from 'path'
 import { registerScriptHandlers } from './script'
 import { registerScrcpyHandlers } from './screen-mirror'
@@ -17,14 +17,11 @@ let mainWindow: BrowserWindow | null = null
 let prevContentSize: { width: number; height: number } | null = null
 
 function createWindow(): void {
-  const iconPath = path.join(__dirname, '../../../resources/macos/icon.icns')
-
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
     minWidth: 960,
     minHeight: 600,
-    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -36,15 +33,6 @@ function createWindow(): void {
   // 窗口准备好后再显示，避免白屏闪烁
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
-    // macOS dock 图标（开发模式下替换默认 Electron 图标）
-    if (process.platform === 'darwin') {
-      try {
-        const ico = nativeImage.createFromPath(iconPath)
-        if (!ico.isEmpty()) {
-          app.dock.setIcon(ico)
-        }
-      } catch (_e) { /* 忽略 */ }
-    }
   })
 
   if (isDev) {
@@ -93,14 +81,6 @@ ipcMain.handle('window:restoreSize', async () => {
 })
 
 app.whenReady().then(() => {
-  // macOS dock 图标（尽早设置，替换默认 Electron 图标）
-  if (process.platform === 'darwin') {
-    try {
-      const icon = nativeImage.createFromPath(path.join(__dirname, '../../../resources/macos/icon.icns'))
-      if (!icon.isEmpty()) app.dock.setIcon(icon)
-    } catch (_e) { /* 忽略 */ }
-  }
-
   // 注册自定义协议 app://，用于加载渲染进程文件（解决 file:// 不支持模块脚本的问题）
   const rendererDir = path.join(__dirname, '../../renderer')
   protocol.handle('app', (request) => {
