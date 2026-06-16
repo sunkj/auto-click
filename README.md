@@ -7,6 +7,8 @@
 
 AutoClick 是一款基于 Electron 的跨平台 Android 设备投屏与控制软件。支持 USB 连接手机后实时投屏、键鼠模拟交互、脚本录制与自动化执行。
 
+![AutoClick 截图](docs/pic/screenshot.png)
+
 ---
 
 ## 功能特性
