@@ -20,8 +20,20 @@ export const bridge = {
   start(serial: string): void {
     stop()
     const bridgePath = path.join(__dirname, 'bridge.mjs')
+    // 在完整 PATH 环境下用 node 运行桥接进程
+    const env = {
+      ...process.env,
+      PATH: [
+        '/usr/local/bin',
+        '/opt/homebrew/bin',
+        '/usr/bin',
+        '/bin',
+        process.env.PATH || '',
+      ].join(':'),
+    }
     bridgeProcess = spawn('node', [bridgePath, serial], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      env,
     })
 
     let buffer = ''
