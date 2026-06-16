@@ -5,11 +5,52 @@
  */
 import { exec, execFileSync } from 'child_process'
 import { promisify } from 'util'
+import { existsSync } from 'fs'
 
 const asyncExec = promisify(exec)
 
+// =============================================================================
+// 自动查找 ADB 可执行文件（使用 PATH 环境变量）
+// =============================================================================
+async function resolveAdbPath(): Promise<string> {
+  const commonPaths = [
+    '/usr/local/bin/adb',
+    '/opt/homebrew/bin/adb',
+    '/usr/bin/adb',
+    '/opt/android/platform-tools/adb',
+  ]
+  for (const p of commonPaths) {
+    if (existsSync(p)) return p
+  }
+  // 回退：用 which 从 PATH 查找
+  try {
+    const { stdout } = await asyncExec('which adb', { encoding: 'utf-8', timeout: 3000 })
+    const resolved = stdout.trim()
+    if (resolved) return resolved
+  } catch { /* ignore */ }
+  return 'adb'
+}
+
+let adbPathPromise: Promise<string> | null = null
+
+async function getAdbPath(): Promise<string> {
+  if (!adbPathPromise) {
+    adbPathPromise = resolveAdbPath()
+  }
+  return adbPathPromise
+}
+
+export async function refreshAdbPath(): Promise<void> {
+  adbPathPromise = resolveAdbPath()
+}
+
+async function adbCmd(...args: string[]): Promise<string> {
+  const adb = await getAdbPath()
+  return [adb, ...args].join(' ')
+}
+
 async function adbShell(serial: string, cmd: string): Promise<string> {
-  const { stdout } = await asyncExec(`adb -s ${serial} shell ${cmd}`, {
+  const { stdout } = await asyncExec(await adbCmd('-s', serial, 'shell', cmd), {
     encoding: 'utf-8',
     timeout: 10000,
   })
@@ -54,8 +95,8 @@ export const adbExec = {
   },
 
   async type(serial: string, text: string): Promise<void> {
-    // 最通用的方式：input text（ASCII 完美支持，中文取决于 Android 版本）
-    execFileSync('adb', ['-s', serial, 'shell', `input text ${text}`], {
+    const adb = await getAdbPath()
+    execFileSync(adb, ['-s', serial, 'shell', `input text ${text}`], {
       encoding: 'utf-8', timeout: 10000,
     })
   },

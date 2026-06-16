@@ -100,7 +100,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
     <main className="flex flex-1 flex-col bg-background">
       {/* Top Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-b px-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {onTogglePanels && !isMinimized && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleTogglePanels} title="收起侧边栏">
               <PanelLeftClose className="h-4 w-4" />
@@ -116,7 +116,6 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
               <div className="mx-1 h-4 w-px bg-border" />
               <div className="flex items-center gap-1.5">
                 <Monitor className="h-3.5 w-3.5" />
-                <span>投屏</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Wifi className={`h-3.5 w-3.5 ${deviceInfo?.transport === 'wi-fi' ? 'text-blue-400' : 'text-muted-foreground/50'}`} />

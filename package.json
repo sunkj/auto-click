@@ -4,14 +4,15 @@
   "description": "AutoClick - 手机投屏与控制软件",
   "main": "dist/main/main/index.js",
   "scripts": {
-    "postinstall": "electron-rebuild",
+    "postinstall": "electron-builder install-app-deps",
     "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
     "dev:renderer": "vite",
     "dev:main": "tsc -p tsconfig.main.json && cp src/main/screen-mirror/bridge.mjs dist/main/main/screen-mirror/bridge.mjs && wait-on http://localhost:5173 && NODE_ENV=development electron .",
-    "build:renderer": "vite build",
+    "build:renderer": "vite build && sed -i '' 's/ crossorigin=\"[^\"]*\"//g; s/ crossorigin//g' dist/renderer/index.html",
     "build:main": "tsc -p tsconfig.main.json && cp src/main/screen-mirror/bridge.mjs dist/main/main/screen-mirror/bridge.mjs",
     "build": "npm run build:renderer && npm run build:main",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.0",
@@ -22,13 +23,13 @@
     "@yume-chan/scrcpy": "^2.3.0",
     "@yume-chan/scrcpy-decoder-tinyh264": "^2.1.0",
     "@yume-chan/stream-extra": "^2.6.1",
+    "better-sqlite3": "^11.10.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.400.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "reflect-metadata": "^0.2.2",
-    "sqlite3": "^5.1.7",
     "tailwind-merge": "^2.4.0",
     "typeorm": "^0.3.30",
     "zustand": "^4.5.4"
@@ -58,11 +59,18 @@
       "dist/**/*",
       "resources/**/*"
     ],
+    "asar": false,
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "resources/macos/icon.icns"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "resources/windows/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "resources/linux/icons"
     }
   }
 }

@@ -6,14 +6,52 @@
  */
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { existsSync } from 'fs'
 import type { SimpleDeviceInfo } from './channels'
 
 const asyncExec = promisify(exec)
 
+// =============================================================================
+// 自动查找 ADB 可执行文件（使用 PATH 环境变量）
+// =============================================================================
+async function resolveAdbPath(): Promise<string> {
+  // 优先尝试常见路径
+  const commonPaths = [
+    '/usr/local/bin/adb',
+    '/opt/homebrew/bin/adb',
+    '/usr/bin/adb',
+    '/opt/android/platform-tools/adb',
+  ]
+  for (const p of commonPaths) {
+    if (existsSync(p)) return p
+  }
+  // 回退：用 which 从 PATH 查找
+  try {
+    const { stdout } = await asyncExec('which adb', { encoding: 'utf-8', timeout: 3000 })
+    const resolved = stdout.trim()
+    if (resolved) return resolved
+  } catch { /* ignore */ }
+  return 'adb'
+}
+
+let adbPathPromise: Promise<string> | null = null
+
+async function getAdbPath(): Promise<string> {
+  if (!adbPathPromise) {
+    adbPathPromise = resolveAdbPath()
+  }
+  return adbPathPromise
+}
+
+export async function refreshAdbPath(): Promise<void> {
+  adbPathPromise = resolveAdbPath()
+}
+
 /** 执行 adb 命令并返回 stdout（异步，不阻塞主进程） */
 async function adbExec(args: string): Promise<string> {
   try {
-    const { stdout } = await asyncExec(`adb ${args}`, { encoding: 'utf-8', timeout: 5000 })
+    const adb = await getAdbPath()
+    const { stdout } = await asyncExec(`${adb} ${args}`, { encoding: 'utf-8', timeout: 5000 })
     return stdout
   } catch (e: any) {
     throw new Error(`ADB 错误: ${e.stderr || e.message}`)

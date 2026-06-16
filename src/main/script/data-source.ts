@@ -5,7 +5,7 @@ import path from 'path'
 import { ScriptEntity } from './entities/script-entity'
 import { StepEntity } from './entities/step-entity'
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = !app.isPackaged
 
 /**
  * 获取数据库文件路径
@@ -52,7 +52,7 @@ const CREATE_TABLES_SQL = [
 ]
 
 const dataSourceOptions: DataSourceOptions = {
-  type: 'sqlite',
+  type: 'better-sqlite3',
   database: getDatabasePath(),
   synchronize: false,
   logging: ['error', 'warn'],
