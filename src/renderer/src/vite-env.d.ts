@@ -93,10 +93,90 @@ interface ElectronScreenMirrorAPI {
   onError: (callback: (error: string) => void) => () => void
 }
 
+// =============================================================================
+// AI Agent 类型定义
+// =============================================================================
+
+type AiAgentActionType = 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence'
+
+interface AiAgentIntentResult {
+  action: AiAgentActionType
+  target: string
+  params?: {
+    direction?: 'up' | 'down' | 'left' | 'right'
+    text?: string
+    key?: 'HOME' | 'BACK' | 'MENU' | 'POWER' | 'APP_SWITCH'
+    duration?: number
+    steps?: AiAgentIntentResult[]
+  }
+  confidence: number
+}
+
+interface AiAgentStepResult {
+  index: number
+  success: boolean
+  error?: string
+  duration: number
+}
+
+interface AiAgentScriptEngineResult {
+  success: boolean
+  totalSteps: number
+  completedSteps: number
+  duration: number
+  error?: string
+  stepResults: AiAgentStepResult[]
+}
+
+interface AiAgentError {
+  code: string
+  message: string
+  nodeId?: string
+  retryable: boolean
+}
+
+interface AiAgentHistoryEntry {
+  timestamp: number
+  userInput: string
+  intent: AiAgentIntentResult | null
+  screenshotPath: string | null
+  result: AiAgentScriptEngineResult | null
+  error: AiAgentError | null
+}
+
+interface ElectronAiAgentAPI {
+  submit: (input: string) => Promise<IpcResult<unknown>>
+  cancel: () => Promise<IpcResult<unknown>>
+  getHistory: () => Promise<IpcResult<AiAgentHistoryEntry[]>>
+  onStatus: (callback: (event: { status: string; node: string; message: string }) => void) => () => void
+  onResult: (callback: (result: AiAgentScriptEngineResult) => void) => () => void
+  onError: (callback: (error: AiAgentError) => void) => () => void
+  onHistory: (callback: (history: AiAgentHistoryEntry[]) => void) => () => void
+}
+
 interface Window {
   electronAPI: {
     platform: string
     script: ElectronScriptAPI
     screenMirror: ElectronScreenMirrorAPI
+    engine?: {
+      runScript: (scriptId: string, serial: string) => Promise<IpcResult<unknown>>
+      runStep: (scriptId: string, stepIndex: number, serial: string) => Promise<IpcResult<unknown>>
+      stopExecution: () => Promise<IpcResult<unknown>>
+      getStatus: () => Promise<IpcResult<unknown>>
+      onStepStart: (callback: (event: any) => void) => () => void
+      onStepEnd: (callback: (event: any) => void) => () => void
+      onStepError: (callback: (event: any) => void) => () => void
+      onComplete: (callback: (event: any) => void) => () => void
+    }
+    config?: {
+      load: () => Promise<IpcResult<unknown>>
+      save: (config: any) => Promise<IpcResult<unknown>>
+    }
+    window?: {
+      resizeToScreen: (width: number, height: number) => Promise<IpcResult<unknown>>
+      restoreSize: () => Promise<IpcResult<unknown>>
+    }
+    aiAgent?: ElectronAiAgentAPI
   }
 }

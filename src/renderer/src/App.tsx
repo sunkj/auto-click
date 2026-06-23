@@ -25,7 +25,7 @@ function App() {
             <StepPanel />
           </>
         )}
-        {/* 投屏区域（始终显示） */}
+        {/* 投屏区域（始终显示，AI浮动按钮内置于此） */}
         <MirrorPanel onTogglePanels={togglePanels} panelsVisible={panelsVisible} />
       </div>
     </div>

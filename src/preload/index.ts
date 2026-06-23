@@ -210,6 +210,47 @@ const windowAPI = {
 }
 
 // =============================================================================
+// AI Agent API
+// =============================================================================
+
+const AI_AGENT = {
+  SUBMIT: 'ai-agent:submit',
+  CANCEL: 'ai-agent:cancel',
+  GET_HISTORY: 'ai-agent:get-history',
+  STATUS: 'ai-agent:status',
+  RESULT: 'ai-agent:result',
+  ERROR: 'ai-agent:error',
+  HISTORY: 'ai-agent:history',
+} as const
+
+const aiAgentAPI = {
+  submit: (input: string) => ipcRenderer.invoke(AI_AGENT.SUBMIT, { input }),
+  cancel: () => ipcRenderer.invoke(AI_AGENT.CANCEL),
+  getHistory: () => ipcRenderer.invoke(AI_AGENT.GET_HISTORY),
+
+  onStatus: (callback: (event: { status: string; node: string; message: string }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(AI_AGENT.STATUS, handler)
+    return () => ipcRenderer.removeListener(AI_AGENT.STATUS, handler)
+  },
+  onResult: (callback: (result: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(AI_AGENT.RESULT, handler)
+    return () => ipcRenderer.removeListener(AI_AGENT.RESULT, handler)
+  },
+  onError: (callback: (error: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(AI_AGENT.ERROR, handler)
+    return () => ipcRenderer.removeListener(AI_AGENT.ERROR, handler)
+  },
+  onHistory: (callback: (history: any[]) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(AI_AGENT.HISTORY, handler)
+    return () => ipcRenderer.removeListener(AI_AGENT.HISTORY, handler)
+  },
+}
+
+// =============================================================================
 // 暴露安全 API 到渲染进程
 // =============================================================================
 
@@ -220,4 +261,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   engine: engineAPI,
   config: configAPI,
   window: windowAPI,
+  aiAgent: aiAgentAPI,
 })
