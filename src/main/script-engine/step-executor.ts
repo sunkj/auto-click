@@ -35,6 +35,11 @@ export class StepExecutor {
   }
 
   private async executeClick(data: Record<string, any>, serial: string): Promise<void> {
+    // 支持 keyEvent（如 KEYCODE_HOME / KEYCODE_BACK）
+    if (data.keyEvent) {
+      await adbExec.keyEvent(serial, data.keyEvent)
+      return
+    }
     const x = Number(data.x)
     const y = Number(data.y)
     if (isNaN(x) || isNaN(y)) {

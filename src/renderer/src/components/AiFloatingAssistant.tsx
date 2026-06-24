@@ -31,11 +31,16 @@ export function AiFloatingAssistant() {
       const unsubStatus = api.onStatus((event) => {
         setStatusMsg(event.message)
       })
-      const unsubResult = api.onResult(() => {
+      const unsubResult = api.onResult((result: any) => {
         unsubStatus()
         unsubResult()
-        setStatus('success')
-        setStatusMsg('执行完成')
+        if (result?.success) {
+          setStatus('success')
+          setStatusMsg('执行完成')
+        } else {
+          setStatus('error')
+          setStatusMsg(result?.error || '执行失败')
+        }
         setInput('')
         setTimeout(() => setStatus('idle'), 2000)
       })

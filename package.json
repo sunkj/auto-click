@@ -15,6 +15,9 @@
     "package": "npm run build && electron-builder --mac"
   },
   "dependencies": {
+    "@langchain/core": "^1.2.1",
+    "@langchain/langgraph": "^1.4.5",
+    "@langchain/openai": "^1.5.2",
     "@radix-ui/react-slot": "^1.1.0",
     "@yume-chan/adb": "^2.6.0",
     "@yume-chan/adb-scrcpy": "^2.3.2",
@@ -30,8 +33,10 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "reflect-metadata": "^0.2.2",
+    "sharp": "^0.35.2",
     "tailwind-merge": "^2.4.0",
     "typeorm": "^0.3.30",
+    "uuid": "^14.0.1",
     "zustand": "^4.5.4"
   },
   "devDependencies": {

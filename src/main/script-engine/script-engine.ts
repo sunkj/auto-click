@@ -128,6 +128,7 @@ export class ScriptEngine {
             success: false, scriptId, totalSteps, completedSteps,
             duration: Date.now() - startTime, error: '脚本执行超时',
           })
+          this.executeNext()
           return
         }
 
@@ -136,6 +137,7 @@ export class ScriptEngine {
             success: false, scriptId, totalSteps, completedSteps,
             duration: Date.now() - startTime, error: '执行已停止',
           })
+          this.executeNext()
           return
         }
 
@@ -157,6 +159,7 @@ export class ScriptEngine {
             success: false, scriptId, totalSteps, completedSteps,
             duration: Date.now() - startTime, error: result.error,
           })
+          this.executeNext()
           return
         }
 
@@ -179,6 +182,8 @@ export class ScriptEngine {
         duration: Date.now() - startTime,
       })
       this.sendProgress({ scriptId, stepIndex: -1, totalSteps, status: 'end' })
+      // 处理队列中下一个任务
+      this.executeNext()
     } catch (err: any) {
       const result: ExecutionResult = {
         success: false,
@@ -189,6 +194,7 @@ export class ScriptEngine {
         error: err.message || '执行失败',
       }
       this.queue.complete(result)
+      this.executeNext()
     }
   }
 

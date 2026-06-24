@@ -83,6 +83,10 @@ export const adbExec = {
     await adbShell(serial, `input tap ${Math.round(x)} ${Math.round(y)}`)
   },
 
+  async keyEvent(serial: string, key: string): Promise<void> {
+    await adbShell(serial, `input keyevent ${key}`)
+  },
+
   async swipe(serial: string, x1: number, y1: number, x2: number, y2: number, duration?: number): Promise<void> {
     await adbShell(serial, `input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${duration ?? 200}`)
   },

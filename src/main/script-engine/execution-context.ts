@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 import type { EngineStep, ExecutionContext as IExecutionContext } from './types'
 
 /** 执行上下文工厂 */
@@ -9,7 +9,7 @@ export function createExecutionContext(
   stepInterval: number,
 ): IExecutionContext {
   return {
-    executionId: uuidv4(),
+    executionId: randomUUID(),
     scriptId,
     serial,
     steps,
