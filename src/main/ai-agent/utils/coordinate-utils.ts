@@ -2,12 +2,19 @@ import type { Point, CalibratedCoord, VisualResult, IntentResult, Resolution } f
 
 /**
  * 将 VLM 返回的视觉坐标映射回设备原始分辨率
+ *
+ * @param visualResult VLM 视觉分析结果
+ * @param intent 意图
+ * @param deviceResolution 设备原始分辨率
+ * @param scaleX X 轴缩放比例（originalWidth / scaledWidth）
+ * @param scaleY Y 轴缩放比例（originalHeight / scaledHeight）
  */
 export function calibrateCoordinates(
   visualResult: VisualResult,
   intent: IntentResult,
   deviceResolution: Resolution,
-  screenshotScale: number, // 缩放比例：originalWidth / scaledWidth
+  scaleX: number,
+  scaleY: number,
 ): CalibratedCoord {
   const elements = visualResult.elements
   const action = intent.action
@@ -17,16 +24,19 @@ export function calibrateCoordinates(
   let targetPoint: Point | null = null
   if (elements.length > 0) {
     const best = elements.reduce((a, b) => (a.confidence > b.confidence ? a : b))
+    // 通过 scaleX/scaleY 将源坐标系映射到设备像素坐标
+    // - UI Automator: 已是设备像素 → scaleX=1, scaleY=1
+    // - VLM 百分比:   0~1 范围 → scaleX=deviceWidth, scaleY=deviceHeight
     targetPoint = {
-      x: Math.round(best.center.x * screenshotScale),
-      y: Math.round(best.center.y * screenshotScale),
+      x: Math.round(best.center.x * scaleX),
+      y: Math.round(best.center.y * scaleY),
     }
     // 同时记录 bounds 信息
     params.bounds = {
-      x: Math.round(best.bounds.x * screenshotScale),
-      y: Math.round(best.bounds.y * screenshotScale),
-      width: Math.round(best.bounds.width * screenshotScale),
-      height: Math.round(best.bounds.height * screenshotScale),
+      x: Math.round(best.bounds.x * scaleX),
+      y: Math.round(best.bounds.y * scaleY),
+      width: Math.round(best.bounds.width * scaleX),
+      height: Math.round(best.bounds.height * scaleY),
     }
     params.elementLabel = best.label
   } else {
@@ -87,7 +97,7 @@ export function calibrateCoordinates(
 }
 
 /**
- * 计算截图缩放比例
+ * 计算截图缩放比例（仅保留 width 版本用于兼容）
  */
 export function calculateScaleFactor(originalWidth: number, scaledWidth: number): number {
   return originalWidth / scaledWidth

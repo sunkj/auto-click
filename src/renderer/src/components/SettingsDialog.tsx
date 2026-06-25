@@ -53,7 +53,7 @@ function AiSettingsForm({ config, onChange }: {
       <div className="flex flex-col gap-[8px] items-start w-full">
         <label className="flex items-center gap-1.5 text-xs font-medium text-foreground tracking-[0.24px]">
           <Key className="h-3 w-3 text-muted-foreground" />
-          智谱 API 密钥
+          DeepSeek API 密钥
         </label>
         <Input
           type="password"
@@ -232,11 +232,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   // AI 设置
   const [aiApiKey, setAiApiKey] = useState('')
-  const [aiBaseUrl, setAiBaseUrl] = useState('https://open.bigmodel.cn/api/paas/v4')
-  const [aiChatModel, setAiChatModel] = useState('glm-4-flash')
-  const [aiVisionModel, setAiVisionModel] = useState('glm-4v')
+  const [aiBaseUrl, setAiBaseUrl] = useState('https://api.deepseek.com')
+  const [aiChatModel, setAiChatModel] = useState('deepseek-chat')
+  const [aiVisionModel, setAiVisionModel] = useState('deepseek-chat')
   const [aiTemperature, setAiTemperature] = useState('0.1')
-  const [aiMaxTokens, setAiMaxTokens] = useState('2048')
+  const [aiMaxTokens, setAiMaxTokens] = useState('4096')
   const [aiTimeout, setAiTimeout] = useState('30000')
   const [aiMaxWidth, setAiMaxWidth] = useState('1024')
   const [aiQuality, setAiQuality] = useState('80')
@@ -252,13 +252,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setMaxRetries(String(cfg.maxRetries ?? 3))
 
       const ai = cfg.aiAgent || {}
-      const zp = ai.zhipu || {}
-      setAiApiKey(zp.apiKey ?? '')
-      setAiBaseUrl(zp.baseUrl ?? 'https://open.bigmodel.cn/api/paas/v4')
-      setAiChatModel(zp.chatModel ?? 'glm-4-flash')
-      setAiVisionModel(zp.visionModel ?? 'glm-4v')
-      setAiTemperature(String(zp.temperature ?? 0.1))
-      setAiMaxTokens(String(ds.maxTokens ?? 2048))
+      const ds = ai.deepseek || {}
+      setAiApiKey(ds.apiKey ?? '')
+      setAiBaseUrl(ds.baseUrl ?? 'https://api.deepseek.com')
+      setAiChatModel(ds.chatModel ?? 'deepseek-chat')
+      setAiVisionModel(ds.visionModel ?? 'deepseek-chat')
+      setAiTemperature(String(ds.temperature ?? 0.1))
+      setAiMaxTokens(String(ds.maxTokens ?? 4096))
       setAiTimeout(String(ds.timeout ?? 30000))
 
       const sc = ai.screenshot || {}
@@ -295,13 +295,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       stepInterval: Number(stepInterval) || 0.5,
       maxRetries: Number(maxRetries) || 3,
       aiAgent: {
-        zhipu: {
+        deepseek: {
           apiKey: aiApiKey,
           baseUrl: aiBaseUrl,
           chatModel: aiChatModel,
           visionModel: aiVisionModel,
           temperature: Number(aiTemperature) || 0.1,
-          maxTokens: Number(aiMaxTokens) || 2048,
+          maxTokens: Number(aiMaxTokens) || 4096,
           timeout: Number(aiTimeout) || 30000,
         },
         screenshot: {

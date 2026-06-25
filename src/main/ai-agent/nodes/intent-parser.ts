@@ -1,7 +1,7 @@
 import type { AgentState } from '../types'
-import { ZhipuAIService } from '../services/big-model-service'
+import { DeepSeekService } from '../services/big-model-service'
 
-const zhipuAI = new ZhipuAIService()
+const deepseek = new DeepSeekService()
 
 /**
  * 意图理解节点
@@ -16,7 +16,7 @@ export async function intentParserNode(state: AgentState): Promise<Partial<Agent
     throw new Error('指令不能为空')
   }
 
-  const intent = await zhipuAI.parseIntent(userInput)
+  const intent = await deepseek.parseIntent(userInput)
 
   return {
     intent,

@@ -12,7 +12,7 @@ import * as path from 'path'
 // =============================================================================
 
 export interface AiAgentConfig {
-  zhipu: {
+  deepseek: {
     apiKey: string
     baseUrl: string
     chatModel: string
@@ -36,13 +36,13 @@ export interface AiAgentConfig {
 }
 
 const DEFAULT_AI_CONFIG: AiAgentConfig = {
-  zhipu: {
+  deepseek: {
     apiKey: '',
-    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    chatModel: 'glm-4-flash',
-    visionModel: 'glm-4v',
+    baseUrl: 'https://api.deepseek.com',
+    chatModel: 'deepseek-chat',
+    visionModel: 'deepseek-chat',
     temperature: 0.1,
-    maxTokens: 2048,
+    maxTokens: 4096,
     timeout: 30000,
   },
   screenshot: {
@@ -105,10 +105,10 @@ export function saveConfig(config: AppConfig): void {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
-/** 获取 DeepSeek API Key（优先从配置文件读取，其次环境变量） */
+/** 获取 API Key（优先从配置文件读取，其次环境变量） */
 export function getApiKey(): string {
   const config = loadConfig()
-  if (config.aiAgent?.zhipu?.apiKey) return config.aiAgent.zhipu.apiKey
+  if (config.aiAgent?.deepseek?.apiKey) return config.aiAgent.deepseek.apiKey
   if (process.env.DEEPSEEK_API_KEY) return process.env.DEEPSEEK_API_KEY
   return ''
 }

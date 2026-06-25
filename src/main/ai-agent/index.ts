@@ -115,6 +115,8 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
     screenshotPath: null,
     visualResult: null,
     calibratedCoords: null,
+    scaledWidth: 0,
+    scaledHeight: 0,
     engineSteps: [],
     result: null,
     error: null,

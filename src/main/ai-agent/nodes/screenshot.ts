@@ -16,6 +16,8 @@ export async function screenshotNode(state: AgentState): Promise<Partial<AgentSt
   return {
     screenshotBase64: result.base64,
     screenshotPath: result.filePath,
+    scaledWidth: result.scaledWidth,
+    scaledHeight: result.scaledHeight,
     deviceResolution: {
       width: result.originalWidth,
       height: result.originalHeight,
