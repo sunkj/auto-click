@@ -21,7 +21,7 @@ let prevContentSize: { width: number; height: number } | null = null
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1280,
-    height: 900,
+    height: 840,
     minWidth: 960,
     minHeight: 600,
     webPreferences: {
