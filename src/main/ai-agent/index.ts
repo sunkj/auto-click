@@ -5,7 +5,7 @@
  */
 import { ipcMain, BrowserWindow } from 'electron'
 import { createAiAgentGraph } from './graph'
-import { loadConfig, getApiKey } from '../config'
+import { loadConfig, getDeepSeekKey } from '../config'
 import type { AgentState, StatusPayload, EngineExecutionResult, AgentError } from './types'
 
 /** IPC 通道常量 */
@@ -57,7 +57,7 @@ let historyStore: AgentState['history'] = []
 
 export function registerAiAgentHandlers(): void {
   ipcMain.handle(AI_AGENT_CHANNELS.SUBMIT, async (_event, payload: { input: string }) => {
-    const apiKey = getApiKey()
+    const apiKey = getDeepSeekKey()
     if (!apiKey) {
       send(AI_AGENT_CHANNELS.ERROR, {
         code: 'LLM_CALL_FAILED',

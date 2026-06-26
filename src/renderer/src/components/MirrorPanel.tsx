@@ -18,7 +18,6 @@ import {
   Home,
 } from 'lucide-react'
 import { ScreenCanvas } from '@/components/ScreenCanvas'
-import { AiFloatingAssistant } from '@/components/AiFloatingAssistant'
 
 interface MirrorPanelProps {
   onTogglePanels?: () => void
@@ -225,9 +224,6 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
           )}
         </div>
       </div>
-
-      {/* AI 助手浮动按钮 + 面板 */}
-      {!isMinimized && <AiFloatingAssistant />}
 
       {/* Bottom Device Info Bar */}
       {!isMinimized && (

@@ -16,6 +16,13 @@ export interface AiAgentConfig {
     apiKey: string
     baseUrl: string
     chatModel: string
+    temperature: number
+    maxTokens: number
+    timeout: number
+  }
+  zhipu: {
+    apiKey: string
+    baseUrl: string
     visionModel: string
     temperature: number
     maxTokens: number
@@ -40,9 +47,16 @@ const DEFAULT_AI_CONFIG: AiAgentConfig = {
     apiKey: '',
     baseUrl: 'https://api.deepseek.com',
     chatModel: 'deepseek-chat',
-    visionModel: 'deepseek-chat',
     temperature: 0.1,
     maxTokens: 4096,
+    timeout: 30000,
+  },
+  zhipu: {
+    apiKey: '',
+    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    visionModel: 'glm-4v',
+    temperature: 0.1,
+    maxTokens: 2048,
     timeout: 30000,
   },
   screenshot: {
@@ -105,10 +119,16 @@ export function saveConfig(config: AppConfig): void {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8')
 }
 
-/** 获取 API Key（优先从配置文件读取，其次环境变量） */
-export function getApiKey(): string {
+/** 获取 DeepSeek API Key（用于意图理解） */
+export function getDeepSeekKey(): string {
   const config = loadConfig()
   if (config.aiAgent?.deepseek?.apiKey) return config.aiAgent.deepseek.apiKey
   if (process.env.DEEPSEEK_API_KEY) return process.env.DEEPSEEK_API_KEY
   return ''
+}
+
+/** 获取智谱 API Key（用于视觉分析） */
+export function getZhipuKey(): string {
+  const config = loadConfig()
+  return config.aiAgent?.zhipu?.apiKey || ''
 }

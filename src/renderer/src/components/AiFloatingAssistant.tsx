@@ -89,7 +89,7 @@ export function AiFloatingAssistant() {
   return (
     <>
       {/* 浮动按钮（带彩色环绕动画） */}
-      <div className="absolute bottom-[62px] right-3 z-20">
+      <div className="absolute bottom-[92px] left-9 z-20">
         {/* 彩色旋转光环 */}
         <div
           className={cn(
@@ -128,7 +128,7 @@ export function AiFloatingAssistant() {
       {/* 滑出面板 */}
       <div
         className={cn(
-          'absolute bottom-14 right-14 z-20 w-[380px] overflow-hidden rounded-lg border bg-background shadow-xl transition-all duration-200',
+          'absolute bottom-20 left-20 z-20 w-[380px] overflow-hidden rounded-lg border bg-background shadow-xl transition-all duration-200',
           open ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
         )}
       >

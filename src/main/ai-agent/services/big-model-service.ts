@@ -1,14 +1,10 @@
 /**
- * DeepSeek API 服务封装
+ * 大模型服务封装
  *
- * Chat（意图理解）使用 @langchain/openai 封装，对接 DeepSeek Chat 模型。
- * Vision（视觉分析）使用 HTTP fetch 调用 DeepSeek Chat（支持 image_url 多模态输入），
- * 通过截图进行视觉识别。
+ * DeepSeek — 意图理解（Chat， @langchain/openai）
+ * 智谱    — 视觉分析（GLM-4V，HTTP fetch）
  *
- * DeepSeek API 兼容 OpenAI 格式：
- * - Base URL: https://api.deepseek.com
- * - Chat: deepseek-chat
- * - Vision: deepseek-chat（支持 base64 图片）
+ * 两个服务独立配置，互不依赖。
  */
 import { ChatOpenAI } from '@langchain/openai'
 import type { IntentResult, VisualResult } from '../types'
@@ -35,14 +31,13 @@ const INTENT_PARSER_PROMPT = `你是一个手机自动化操作指令解析器�
 
 用户指令：{{userInput}}`
 
-
+// =============================================================================
+// DeepSeek — 意图理解
+// =============================================================================
 
 export class DeepSeekService {
   private _chatModel: ChatOpenAI | null = null
   private config = loadConfig()
-  /** VLM 实际接收到的图片尺寸（缩放后） */
-  private _imageWidth = 0
-  private _imageHeight = 0
 
   private getChatModel(): ChatOpenAI {
     if (!this._chatModel) {
@@ -83,7 +78,6 @@ export class DeepSeekService {
 
     const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
     console.log('Big Model parseIntent 原始输出:', text)
-    // 提取 JSON（处理模型可能用 markdown 包裹的情况）
     const jsonStr = extractJson(text)
     const parsed = JSON.parse(jsonStr)
 
@@ -94,26 +88,39 @@ export class DeepSeekService {
       confidence: parsed.confidence || 0.5,
     }
   }
+}
+
+// =============================================================================
+// 智谱 GLM-4V — 视觉分析
+// =============================================================================
+
+export class ZhipuVisionService {
+  private config = loadConfig()
+  private _lastResolution: { width: number; height: number } | null = null
+  private _imageWidth = 0
+  private _imageHeight = 0
 
   /**
-   * 视觉分析 — 调用 DeepSeek Chat 多模态模型识别目标元素位置
+   * 视觉分析 — 调用智谱 GLM-4V 识别目标元素位置
    *
-   * 将截图直接传入视觉模型，让 AI "看到"屏幕内容并识别目标元素坐标。
+   * 将截图传入视觉模型，返回百分比坐标（0~1）。
    */
   async analyzeScreenshot(screenshotBase64: string, intent: IntentResult): Promise<VisualResult> {
-    const cfg = this.config.aiAgent!.deepseek
+    const cfg = this.config.aiAgent!.zhipu
+    const baseUrl = cfg.baseUrl || 'https://open.bigmodel.cn/api/paas/v4'
+    console.log('[AiAgent] 智谱配置:', JSON.stringify({ apiKey: cfg.apiKey ? '***' : '', baseUrl, visionModel: cfg.visionModel }))
     if (!cfg.apiKey) {
-      throw new Error('请先在系统设置中配置 DeepSeek API Key')
+      throw new Error('请先在系统设置中配置智谱 API Key')
     }
     if (!screenshotBase64) {
       throw new Error('缺少截图数据，无法进行视觉分析')
     }
-    const url = `${cfg.baseUrl}/chat/completions`
+    const url = `${baseUrl}/chat/completions`
     const resolution = this._lastResolution || { width: 1080, height: 2400 }
     const imgW = this._imageWidth || resolution.width
     const imgH = this._imageHeight || resolution.height
 
-    console.log('[AiAgent] VLM 请求参数:', JSON.stringify({
+    console.log('[AiAgent] 智谱 VLM 请求参数:', JSON.stringify({
       deviceResolution: resolution,
       imageSize: `${imgW}x${imgH}`,
       target: intent.target,
@@ -122,7 +129,7 @@ export class DeepSeekService {
 
     const body = JSON.stringify({
       model: cfg.visionModel,
-      temperature: 0.1,
+      temperature: cfg.temperature,
       max_tokens: cfg.maxTokens,
       messages: [
         {
@@ -169,7 +176,7 @@ export class DeepSeekService {
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '')
-      throw new Error(`DeepSeek API 错误 (${response.status}): ${errText}`)
+      throw new Error(`智谱 API 错误 (${response.status}): ${errText}`)
     }
 
     const data = await response.json() as any
@@ -187,21 +194,16 @@ export class DeepSeekService {
       type: el.type,
     }))
 
-    console.log('[AiAgent] VLM 返回坐标:', JSON.stringify({
+    console.log('[AiAgent] 智谱 VLM 返回坐标:', JSON.stringify({
       imageSize: `${imgW}x${imgH}`,
       elements: elements.map((e: any) => ({ label: e.label, center: e.center, bounds: e.bounds })),
       rawDescription: parsed.rawDescription,
     }))
 
-    return {
-      elements,
-      rawDescription: parsed.rawDescription || '',
-    }
+    return { elements, rawDescription: parsed.rawDescription || '' }
   }
 
   /** 记录截图信息供视觉分析使用 */
-  private _lastResolution: { width: number; height: number } | null = null
-
   setScreenshotInfo(resolution: { width: number; height: number }, imageWidth: number, imageHeight: number) {
     this._lastResolution = resolution
     this._imageWidth = imageWidth
