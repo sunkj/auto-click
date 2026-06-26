@@ -20,6 +20,9 @@ export class StepExecutor {
         case 'longpress':
           await this.executeLongPress(step.data, context.serial)
           break
+        case 'home':
+          await this.executeHome(context.serial)
+          break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
       }
@@ -104,5 +107,10 @@ export class StepExecutor {
     // duration 从 UI 来的是秒，转为毫秒
     const durationMs = Math.round((Number(data.duration) || 1) * 1000)
     await adbExec.longPress(serial, x, y, durationMs)
+  }
+
+  /** 执行回主屏幕操作 */
+  private async executeHome(serial: string): Promise<void> {
+    await adbExec.keyEvent(serial, 'KEYCODE_HOME')
   }
 }

@@ -12,6 +12,7 @@ import type {
   SwipeStepData,
   ScriptStepData,
   LongPressStepData,
+  HomeStepData,
   CreateStepParams,
 } from '../types'
 
@@ -22,7 +23,7 @@ import type {
 export interface RendererStep {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'home'
   params: Record<string, string>
   description: string
   name: string
@@ -80,6 +81,11 @@ function flattenStepData(type: string, data: StepData): {
       params.y = String(d.y)
       params.pressDuration = String(d.duration)
       description = d.description ?? `长按 (${d.x}, ${d.y}) ${d.duration}s`
+      break
+    }
+    case 'home': {
+      const d = data as HomeStepData
+      description = d.description ?? '回主屏幕'
       break
     }
   }
@@ -140,6 +146,10 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
         duration: Number(params.pressDuration) || 1,
         description: params.description || undefined,
       } as LongPressStepData
+    case 'home':
+      return {
+        description: params.description || undefined,
+      } as HomeStepData
     case 'script':
       return {
         scriptName: params.scriptName || '',

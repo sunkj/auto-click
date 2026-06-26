@@ -8,7 +8,7 @@ import { useDeviceStore } from '@/stores/deviceStore'
 export interface Step {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'longpress'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home'
   params: Record<string, string>
   description: string
   name: string

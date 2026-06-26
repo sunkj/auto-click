@@ -11,9 +11,10 @@ import {
   ArrowUpDown,
   Pointer,
   Database,
+  House,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'longpress'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home'
 
 interface NewStepDialogProps {
   open: boolean
@@ -26,6 +27,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   type: { label: '输入', icon: Keyboard, color: 'text-green-500' },
   swipe: { label: '滑动', icon: ArrowUpDown, color: 'text-purple-500' },
   longpress: { label: '长按', icon: Pointer, color: 'text-red-500' },
+  home: { label: '回主屏幕', icon: House, color: 'text-orange-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -45,12 +47,13 @@ const typeLabels: Record<StepType, string> = {
   type: '输入',
   swipe: '滑动',
   longpress: '长按',
+  home: '回主屏幕',
 }
 
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
   const isEditMode = !!editStep
 
-  const [stepType, setStepType] = useState<StepType>(editStep?.type ?? 'click')
+  const [stepType, setStepType] = useState<StepType>((editStep?.type as StepType) ?? 'click')
   const [stepName, setStepName] = useState<string>(editStep?.name || typeLabels[editStep?.type as StepType] || '点击')
   const [params, setParams] = useState<Record<string, string>>(
     editStep ? paramsFromStep(editStep) : {
@@ -67,7 +70,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   // 当 editStep 变化时同步表单
   useEffect(() => {
     if (editStep) {
-      setStepType(editStep.type)
+      setStepType(editStep.type as StepType)
       setStepName(editStep.name || typeLabels[editStep.type as StepType] || '')
       setParams(paramsFromStep(editStep))
     } else {
@@ -108,7 +111,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       const { currentScriptId } = store
       if (!currentScriptId) return
       try {
-        await store.addStep(currentScriptId, stepType, params, undefined, stepName || undefined)
+        await store.addStep(currentScriptId, stepType as any, params, undefined, stepName || undefined)
       } catch (error) {
         console.error('[NewStepDialog] 添加步骤失败:', error)
       }
@@ -120,7 +123,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'longpress']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home']
 
   // 从录制记录选择
   const [showRecordSelector, setShowRecordSelector] = useState(false)
@@ -240,6 +243,12 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
                 className="h-8 text-sm"
               />
             </div>
+          </div>
+        )
+      case 'home':
+        return (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            回主屏幕操作无需额外参数
           </div>
         )
     }

@@ -17,6 +17,7 @@ import {
   ArrowUpDown,
   Pointer,
   FolderClosed,
+  House,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -29,6 +30,7 @@ const stepLabels: Record<string, string> = {
   swipe: '滑动',
   longpress: '长按',
   script: '脚本',
+  home: '回主屏幕',
 }
 
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -37,6 +39,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   swipe: ArrowUpDown,
   longpress: Pointer,
   script: FileCode,
+  home: House,
 }
 
 export function StepPanel() {
