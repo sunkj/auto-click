@@ -17,8 +17,6 @@ interface RecordClickFormDialogProps {
  *
  * 在录制模式下点击蒙版后弹出，自动填入坐标(x,y)和type="click"，
  * 用户填写名称后保存。
- *
- * 当前使用 mock 数据，后续接入 IPC。
  */
 export function RecordClickFormDialog({
   open,
@@ -52,13 +50,14 @@ export function RecordClickFormDialog({
     setError('')
 
     try {
-      // Mock: 模拟 IPC 保存
-      console.log('[Mock] 保存录制点击:', { name: trimmed, x: coord.x, y: coord.y, type: 'click' })
-      await new Promise((r) => setTimeout(r, 600))
+      const api = window.electronAPI?.recordedClick
+      if (!api) throw new Error('recordedClick API 不可用')
+      const result = await api.create({ name: trimmed, x: coord.x, y: coord.y, type: 'click' })
+      if (!result.success) throw new Error(result.error || '保存失败')
       onSaved?.()
       onOpenChange(false)
-    } catch {
-      setError('保存失败，请重试')
+    } catch (err) {
+      setError(String(err))
     } finally {
       setSaving(false)
     }

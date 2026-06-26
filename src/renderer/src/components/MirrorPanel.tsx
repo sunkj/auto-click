@@ -343,7 +343,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
         {/* 录制 & 查看按钮 - 浮动在投屏区域右上角 */}
         {!isMinimized && (
-          <div className="absolute top-5 right-5 z-40">
+          <div className="absolute top-5 left-5 z-40">
             <RecordActionButtons
               isRecording={isRecording}
               onToggleRecording={() => setIsRecording((v) => !v)}
@@ -364,8 +364,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
         }}
         coord={recordCoord}
         onSaved={() => {
-          // 保存成功后退出录制模式
-          setIsRecording(false)
+          // 保存成功后继续保持录制模式，让用户自行退出
         }}
       />
 

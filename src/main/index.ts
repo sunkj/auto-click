@@ -4,6 +4,7 @@ import { registerScriptHandlers } from './script'
 import { registerScrcpyHandlers } from './screen-mirror'
 import { registerEngineHandlers } from './script-engine'
 import { registerAiAgentHandlers } from './ai-agent'
+import { registerRecordedClickHandlers } from './record-script'
 import { loadConfig, saveConfig } from './config'
 
 const isDev = !app.isPackaged
@@ -96,6 +97,7 @@ app.whenReady().then(() => {
   registerScrcpyHandlers()
   registerEngineHandlers()
   registerAiAgentHandlers()
+  registerRecordedClickHandlers()
   // 配置读写 IPC
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config) => { saveConfig(config); return { success: true } })

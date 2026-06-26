@@ -37,6 +37,24 @@ const IPC = {
 // 脚本管理 API
 // =============================================================================
 
+const RPC = {
+  RECORDED_CLICK_CREATE: 'recordedClick:create',
+  RECORDED_CLICK_GET_ALL: 'recordedClick:getAll',
+  RECORDED_CLICK_UPDATE: 'recordedClick:update',
+  RECORDED_CLICK_DELETE: 'recordedClick:delete',
+} as const
+
+const recordedClickAPI = {
+  create: (params: { name: string; x: number; y: number; type: string; ext?: string | null }) =>
+    ipcRenderer.invoke(RPC.RECORDED_CLICK_CREATE, params),
+  getAll: (page: number, pageSize: number) =>
+    ipcRenderer.invoke(RPC.RECORDED_CLICK_GET_ALL, { page, pageSize }),
+  update: (id: number, updates: { name?: string }) =>
+    ipcRenderer.invoke(RPC.RECORDED_CLICK_UPDATE, { id, updates }),
+  delete: (id: number) =>
+    ipcRenderer.invoke(RPC.RECORDED_CLICK_DELETE, id),
+}
+
 const scriptAPI = {
   // --- 脚本 ---
   createScript: (args: { name: string; filePath: string; description?: string; parentId?: string | null }) =>
@@ -266,4 +284,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   config: configAPI,
   window: windowAPI,
   aiAgent: aiAgentAPI,
+  recordedClick: recordedClickAPI,
 })

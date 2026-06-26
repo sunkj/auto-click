@@ -171,6 +171,12 @@ interface Window {
       onStepError: (callback: (event: any) => void) => () => void
       onComplete: (callback: (event: any) => void) => () => void
     }
+    recordedClick: {
+      create: (params: { name: string; x: number; y: number; type: string; ext?: string | null }) => Promise<IpcResult<{ id: number; name: string; x: number; y: number; type: string; ext: string | null; createdAt: string; updatedAt: string }>>
+      getAll: (page: number, pageSize: number) => Promise<IpcResult<{ items: Array<{ id: number; name: string; x: number; y: number; type: string; ext: string | null; createdAt: string; updatedAt: string }>; total: number; page: number; pageSize: number; totalPages: number }>>
+      update: (id: number, updates: { name?: string }) => Promise<IpcResult<{ id: number; name: string; x: number; y: number; type: string; ext: string | null; createdAt: string; updatedAt: string }>>
+      delete: (id: number) => Promise<IpcResult<boolean>>
+    }
     config?: {
       load: () => Promise<IpcResult<unknown>>
       save: (config: any) => Promise<IpcResult<unknown>>

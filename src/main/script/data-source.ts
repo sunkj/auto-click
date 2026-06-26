@@ -4,6 +4,7 @@ import { app } from 'electron'
 import path from 'path'
 import { ScriptEntity } from './entities/script-entity'
 import { StepEntity } from './entities/step-entity'
+import { RecordedClickEntity } from '../record-script/entities/recorded-click-entity'
 
 const isDev = !app.isPackaged
 
@@ -49,6 +50,16 @@ const CREATE_TABLES_SQL = [
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "UQ_script_step_index" ON "steps" ("script_id", "step_index")`,
   `CREATE INDEX IF NOT EXISTS "IDX_steps_script_id" ON "steps" ("script_id")`,
+  `CREATE TABLE IF NOT EXISTS "recorded_clicks" (
+    "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" text NOT NULL,
+    "x" integer NOT NULL,
+    "y" integer NOT NULL,
+    "type" text NOT NULL DEFAULT 'click',
+    "ext" text,
+    "created_at" datetime NOT NULL DEFAULT (datetime('now')),
+    "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
+  )`,
 ]
 
 const dataSourceOptions: DataSourceOptions = {
@@ -56,7 +67,7 @@ const dataSourceOptions: DataSourceOptions = {
   database: getDatabasePath(),
   synchronize: false,
   logging: ['error', 'warn'],
-  entities: [ScriptEntity, StepEntity],
+  entities: [ScriptEntity, StepEntity, RecordedClickEntity],
   migrations: [path.join(__dirname, 'migrations/**/*.{ts,js}')],
 }
 

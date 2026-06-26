@@ -18,10 +18,6 @@ import {
   CircleX,
 } from 'lucide-react'
 
-// =============================================================================
-// Mock 数据类型
-// =============================================================================
-
 interface RecordedClickItem {
   id: number
   name: string
@@ -31,35 +27,12 @@ interface RecordedClickItem {
   createdAt: string
 }
 
-// =============================================================================
-// Mock 数据
-// =============================================================================
-
-const MOCK_ITEMS: RecordedClickItem[] = Array.from({ length: 35 }, (_, i) => ({
-  id: i + 1,
-  name: [
-    '点击微信', '点击支付宝', '点击抖音', '点击设置', '点击浏览器',
-    '点击相机', '点击相册', '点击音乐', '点击地图', '点击时钟',
-    '点击计算器', '点击日历', '点击邮件', '点击短信', '点击电话',
-    '点击微信支付', '点击扫一扫', '点击朋友圈', '点击公众号', '点击小程序',
-    '点击美团', '点击淘宝', '点击京东', '点击拼多多', '点击B站',
-    '点击微博', '点击知乎', '点击小红书', '点击网易云', '点击QQ',
-    '点击钉钉', '点击飞书', '点击企业微信', '点击WPS', '点击百度网盘',
-  ][i],
-  x: 150 + Math.floor(Math.random() * 700),
-  y: 300 + Math.floor(Math.random() * 1800),
-  type: 'click',
-  createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-}))
-
 const PAGE_SIZE = 10
 
 /**
  * 录制模板列表弹窗
  *
  * 分页展示所有已录制的点击事件，支持行内编辑名称和删除。
- *
- * 当前使用 mock 数据，后续接入 IPC。
  */
 export function RecordedClickListDialog({
   open,
@@ -84,7 +57,7 @@ export function RecordedClickListDialog({
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   // ===========================================================================
-  // 加载数据（Mock）
+  // 加载数据
   // ===========================================================================
 
   const loadData = useCallback(async (p: number) => {
@@ -92,14 +65,15 @@ export function RecordedClickListDialog({
     setError('')
 
     try {
-      // Mock: 模拟 IPC 分页查询
-      await new Promise((r) => setTimeout(r, 500))
-      const start = (p - 1) * PAGE_SIZE
-      const paged = MOCK_ITEMS.slice(start, start + PAGE_SIZE)
-      setItems(paged)
-      setTotal(MOCK_ITEMS.length)
-    } catch {
-      setError('加载失败，请重试')
+      const api = window.electronAPI?.recordedClick
+      if (!api) throw new Error('recordedClick API 不可用')
+      const result = await api.getAll(p, PAGE_SIZE)
+      if (!result.success) throw new Error(result.error || '加载失败')
+      const data = result.data!
+      setItems(data.items)
+      setTotal(data.total)
+    } catch (err) {
+      setError(String(err))
     } finally {
       setLoading(false)
     }
@@ -121,7 +95,7 @@ export function RecordedClickListDialog({
   }
 
   // ===========================================================================
-  // 编辑操作（Mock）
+  // 编辑操作
   // ===========================================================================
 
   const startEdit = (item: RecordedClickItem) => {
@@ -138,35 +112,38 @@ export function RecordedClickListDialog({
     const trimmed = editName.trim()
     if (!trimmed || editingId === null) return
 
-    // Mock: 模拟 IPC 更新
-    console.log('[Mock] 更新录制点击:', { id: editingId, name: trimmed })
-    await new Promise((r) => setTimeout(r, 200))
-
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === editingId ? { ...item, name: trimmed } : item
+    try {
+      const api = window.electronAPI?.recordedClick
+      if (!api) throw new Error('recordedClick API 不可用')
+      const result = await api.update(editingId, { name: trimmed })
+      if (!result.success) throw new Error(result.error || '更新失败')
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === editingId ? { ...item, name: trimmed } : item
+        )
       )
-    )
-    setEditingId(null)
+      setEditingId(null)
+    } catch (err) {
+      console.error('[RecordedClickListDialog] 更新失败:', err)
+    }
   }
 
   // ===========================================================================
-  // 删除操作（Mock）
+  // 删除操作
   // ===========================================================================
 
   const handleDelete = async () => {
     if (deleteId === null) return
 
-    // Mock: 模拟 IPC 删除
-    console.log('[Mock] 删除录制点击:', { id: deleteId })
-    await new Promise((r) => setTimeout(r, 200))
-
-    // 从 mock 数组中移除（实际项目中通过 IPC 删除）
-    const idx = MOCK_ITEMS.findIndex((item) => item.id === deleteId)
-    if (idx !== -1) MOCK_ITEMS.splice(idx, 1)
-
-    setDeleteId(null)
-    loadData(page)
+    try {
+      const api = window.electronAPI?.recordedClick
+      if (!api) throw new Error('recordedClick API 不可用')
+      await api.delete(deleteId)
+      setDeleteId(null)
+      loadData(page)
+    } catch (err) {
+      console.error('[RecordedClickListDialog] 删除失败:', err)
+    }
   }
 
   // ===========================================================================
