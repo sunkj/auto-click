@@ -295,6 +295,38 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
           )}
         </div>
 
+        {/* 向上/向下滑动按钮 - 画布右侧居中 */}
+        {!isMinimized && canvasRect.width > 0 && (
+          <div
+            className="absolute z-20 flex flex-col gap-2"
+            style={{
+              top: canvasRect.top + canvasRect.height / 2 - 32,
+              left: canvasRect.left + canvasRect.width + 6,
+            }}
+          >
+            <button
+              onClick={() => window.electronAPI?.screenMirror?.swipeUp()}
+              disabled={!isConnected}
+              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="向上滑动"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 15l-6-6-6 6" />
+              </svg>
+            </button>
+            <button
+              onClick={() => window.electronAPI?.screenMirror?.swipeDown()}
+              disabled={!isConnected}
+              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="向下滑动"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* 录制模式蒙版 - 基于 canvas 实际位置定位 */}
         {isRecording && canvasRect.width > 0 && (
           <div

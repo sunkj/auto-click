@@ -48,9 +48,9 @@ export function registerScrcpyHandlers(): void {
       const target = devices.find((d) => d.serial === serial) || devices[0]
       if (!target) throw new Error('未发现可用设备（请确认 USB 调试已开启）')
 
-      ctrl.setSerial(target.serial)
-      deviceModel = await adb.getDeviceModel(target.serial)
       const deviceRes = await adb.getDeviceResolution(target.serial)
+      ctrl.setSerial(target.serial, deviceRes.width, deviceRes.height)
+      deviceModel = await adb.getDeviceModel(target.serial)
       // 判断传输方式：IP:port 格式为无线，否则为 USB
       const transport = target.serial.includes(':') ? 'wi-fi' : 'usb'
 
@@ -106,6 +106,24 @@ export function registerScrcpyHandlers(): void {
   ipcMain.handle(SMC.SWIPE, async (_event, x1: number, y1: number, x2: number, y2: number, duration?: number) => {
     try {
       await ctrl.swipe(x1, y1, x2, y2, duration)
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(SMC.SWIPE_UP, async () => {
+    try {
+      await ctrl.swipeUp()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(SMC.SWIPE_DOWN, async () => {
+    try {
+      await ctrl.swipeDown()
       return { success: true }
     } catch (error) {
       return { success: false, error: String(error) }

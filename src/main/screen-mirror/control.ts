@@ -7,10 +7,14 @@
 import { adb } from './adb'
 
 let deviceSerial: string | null = null
+let deviceWidth = 0
+let deviceHeight = 0
 
 export const ctrl = {
-  setSerial(serial: string | null) {
+  setSerial(serial: string | null, width?: number, height?: number) {
     deviceSerial = serial
+    if (width) deviceWidth = width
+    if (height) deviceHeight = height
   },
 
   getSerial() {
@@ -29,6 +33,26 @@ export const ctrl = {
   async swipe(x1: number, y1: number, x2: number, y2: number, duration?: number): Promise<void> {
     if (!deviceSerial) throw new Error('未连接设备')
     await adb.shell(deviceSerial, `input swipe ${Math.round(x1)} ${Math.round(y1)} ${Math.round(x2)} ${Math.round(y2)} ${duration ?? 200}`)
+  },
+
+  /** 向上滑动一屏（刷视频/滚动内容） */
+  async swipeUp(): Promise<void> {
+    if (!deviceSerial) throw new Error('未连接设备')
+    if (!deviceWidth || !deviceHeight) throw new Error('设备分辨率未设置')
+    const cx = Math.round(deviceWidth / 2)
+    const startY = Math.round(deviceHeight * 0.65)
+    const endY = Math.round(deviceHeight * 0.25)
+    await adb.shell(deviceSerial, `input swipe ${cx} ${startY} ${cx} ${endY} 300`)
+  },
+
+  /** 向下滑动一屏（刷视频/滚动内容） */
+  async swipeDown(): Promise<void> {
+    if (!deviceSerial) throw new Error('未连接设备')
+    if (!deviceWidth || !deviceHeight) throw new Error('设备分辨率未设置')
+    const cx = Math.round(deviceWidth / 2)
+    const startY = Math.round(deviceHeight * 0.25)
+    const endY = Math.round(deviceHeight * 0.65)
+    await adb.shell(deviceSerial, `input swipe ${cx} ${startY} ${cx} ${endY} 300`)
   },
 
   async type(text: string): Promise<void> {

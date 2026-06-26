@@ -98,6 +98,8 @@ const SMC = {
   GET_STATUS: 'scrcpy:getStatus',
   TAP: 'scrcpy:tap',
   SWIPE: 'scrcpy:swipe',
+  SWIPE_UP: 'scrcpy:swipeUp',
+  SWIPE_DOWN: 'scrcpy:swipeDown',
   BACK: 'scrcpy:back',
   HOME: 'scrcpy:home',
   TEXT: 'scrcpy:text',
@@ -115,6 +117,8 @@ const screenMirrorAPI = {
   tap: (x: number, y: number) => ipcRenderer.invoke(SMC.TAP, x, y),
   swipe: (x1: number, y1: number, x2: number, y2: number, duration?: number) =>
     ipcRenderer.invoke(SMC.SWIPE, x1, y1, x2, y2, duration),
+  swipeUp: () => ipcRenderer.invoke(SMC.SWIPE_UP),
+  swipeDown: () => ipcRenderer.invoke(SMC.SWIPE_DOWN),
   back: () => ipcRenderer.invoke(SMC.BACK),
   home: () => ipcRenderer.invoke(SMC.HOME),
   text: (t: string) => ipcRenderer.invoke(SMC.TEXT, t),

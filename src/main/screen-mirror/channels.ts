@@ -6,6 +6,8 @@ export const SMC = {
   GET_STATUS: 'scrcpy:getStatus',
   TAP: 'scrcpy:tap',
   SWIPE: 'scrcpy:swipe',
+  SWIPE_UP: 'scrcpy:swipeUp',
+  SWIPE_DOWN: 'scrcpy:swipeDown',
   BACK: 'scrcpy:back',
   HOME: 'scrcpy:home',
   FRAME: 'scrcpy:frame',

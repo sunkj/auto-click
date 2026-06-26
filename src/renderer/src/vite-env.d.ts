@@ -84,6 +84,8 @@ interface ElectronScreenMirrorAPI {
   disconnect: () => Promise<IpcResult<void>>
   tap: (x: number, y: number) => Promise<IpcResult<void>>
   swipe: (x1: number, y1: number, x2: number, y2: number, duration?: number) => Promise<IpcResult<void>>
+  swipeUp: () => Promise<IpcResult<void>>
+  swipeDown: () => Promise<IpcResult<void>>
   back: () => Promise<IpcResult<void>>
   home: () => Promise<IpcResult<void>>
   text: (t: string) => Promise<IpcResult<void>>
