@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { RecordClickFormDialog } from '@/components/RecordClickFormDialog'
+import { RecordedClickListDialog } from '@/components/RecordedClickListDialog'
+import { RecordActionButtons } from '@/components/RecordActionButtons'
 import {
   Smartphone,
   Monitor,
@@ -29,6 +32,14 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const [isHovering, setIsHovering] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+
+  // 录制模式状态
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordCoord, setRecordCoord] = useState({ x: 0, y: 0 })
+  const [showFormDialog, setShowFormDialog] = useState(false)
+  const [showListDialog, setShowListDialog] = useState(false)
+  const [canvasRect, setCanvasRect] = useState({ top: 0, left: 0, width: 0, height: 0 })
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
@@ -63,6 +74,65 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
   const handleCanvasMove = (x: number, y: number) => setMousePos({ x, y })
   const handleCanvasEnter = () => setIsHovering(true)
   const handleCanvasLeave = () => { setIsHovering(false); setMousePos({ x: 0, y: 0 }) }
+
+  // 跟踪 canvas 位置和大小（用于蒙版定位）
+  useEffect(() => {
+    const updateRect = () => {
+      const canvas = document.querySelector('canvas')
+      const content = contentRef.current
+      if (!canvas || !content) return
+      const cr = canvas.getBoundingClientRect()
+      const nr = content.getBoundingClientRect()
+      setCanvasRect({
+        top: cr.top - nr.top,
+        left: cr.left - nr.left,
+        width: cr.width,
+        height: cr.height,
+      })
+    }
+
+    // 初始更新
+    requestAnimationFrame(updateRect)
+
+    // 监听画布尺寸变化
+    const observer = new ResizeObserver(updateRect)
+    const canvas = document.querySelector('canvas')
+    if (canvas) observer.observe(canvas)
+    if (contentRef.current) observer.observe(contentRef.current)
+    window.addEventListener('resize', updateRect)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateRect)
+    }
+  }, [isConnected, isMinimized])
+
+  // 录制模式：点击蒙版 → 基于 canvas 元素直接映射坐标
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    const canvas = document.querySelector('canvas')
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const dw = deviceInfo?.deviceWidth || 1
+    const dh = deviceInfo?.deviceHeight || 1
+    if (!rect.width || !rect.height) return
+    setRecordCoord({
+      x: Math.round((e.clientX - rect.left) * (dw / rect.width)),
+      y: Math.round((e.clientY - rect.top) * (dh / rect.height)),
+    })
+    setShowFormDialog(true)
+  }
+
+  // 录制模式：Escape 退出
+  useEffect(() => {
+    if (!isRecording) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsRecording(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isRecording])
 
   // 最小化/还原
   const [prevPanelsVisible, setPrevPanelsVisible] = useState(false)
@@ -158,12 +228,13 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             {!isConnected && (
               <Badge variant="outline" className="h-5 text-[10px] font-normal text-muted-foreground/50">未连接</Badge>
             )}
+
           </div>
         )}
       </div>
 
       {/* Content Area — 投屏在底层，遮盖层在顶层 */}
-      <div className="flex flex-1 items-center justify-center bg-black/5 relative overflow-hidden">
+      <div ref={contentRef} className="flex flex-1 items-center justify-center bg-black/5 relative overflow-hidden">
         {/* 底层：投屏画布（始终渲染） */}
         <div className={`flex flex-col items-center absolute inset-0 ${isMinimized ? 'gap-0 py-0' : 'gap-2 py-2'}`}>
           <ScreenCanvas
@@ -223,27 +294,89 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             </div>
           )}
         </div>
+
+        {/* 录制模式蒙版 - 基于 canvas 实际位置定位 */}
+        {isRecording && canvasRect.width > 0 && (
+          <div
+            className="absolute z-30 bg-black/40 cursor-crosshair rounded-lg"
+            style={{
+              top: canvasRect.top,
+              left: canvasRect.left,
+              width: canvasRect.width,
+              height: canvasRect.height,
+            }}
+            onClick={handleOverlayClick}
+          />
+        )}
+
+        {/* 录制 & 查看按钮 - 浮动在投屏区域右上角 */}
+        {!isMinimized && (
+          <div className="absolute top-5 right-5 z-40">
+            <RecordActionButtons
+              isRecording={isRecording}
+              onToggleRecording={() => setIsRecording((v) => !v)}
+              onOpenList={() => setShowListDialog(true)}
+            />
+          </div>
+        )}
       </div>
+
+      {/* 录制保存表单弹窗 */}
+      <RecordClickFormDialog
+        open={showFormDialog}
+        onOpenChange={(v) => {
+          setShowFormDialog(v)
+          if (!v) {
+            // 关闭弹窗但保持录制模式（用户可继续录制其他位置）
+          }
+        }}
+        coord={recordCoord}
+        onSaved={() => {
+          // 保存成功后退出录制模式
+          setIsRecording(false)
+        }}
+      />
+
+      {/* 录制模板列表弹窗 */}
+      <RecordedClickListDialog
+        open={showListDialog}
+        onOpenChange={setShowListDialog}
+      />
 
       {/* Bottom Device Info Bar */}
       {!isMinimized && (
         <div className="flex h-[40px] items-center justify-between border-t px-4 text-[11px]">
-          {isConnected && deviceInfo ? (
-            <>
-              <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {/* 录制模式状态 */}
+            {isRecording && (
+              <div className="flex items-center gap-1.5 mr-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                </span>
+                <span className="text-red-500 font-medium animate-pulse">录制模式</span>
+                <span className="text-muted-foreground/40 mx-1">|</span>
+              </div>
+            )}
+            {isConnected && deviceInfo ? (
+              <>
                 <span className="text-green-500 font-medium">● 已连接</span>
                 <span className="text-muted-foreground">{deviceInfo.model}</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
+              </>
+            ) : (
+              <span className="text-muted-foreground/50">
+                ● {status === 'connecting' ? '连接中' : status === 'error' ? '错误' : '已断开'}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-muted-foreground">
+            {isConnected && deviceInfo && (
+              <>
                 <span>{deviceInfo.resolution}</span>
                 <span>{deviceInfo.serial}</span>
-              </div>
-            </>
-          ) : (
-            <span className="text-muted-foreground/50">
-              ● {status === 'connecting' ? '连接中' : status === 'error' ? '错误' : '已断开'}
-            </span>
-          )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </main>

@@ -154,7 +154,7 @@ export function AiFloatingAssistant() {
               onClick={handleSubmit}
               disabled={!input.trim() || isRunning}
               className={cn(
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors mt-0.5',
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors mt-0.5',
                 isRunning
                   ? 'bg-muted text-muted-foreground cursor-not-allowed'
                   : 'bg-primary text-primary-foreground hover:bg-primary/90'
