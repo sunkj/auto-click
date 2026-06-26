@@ -76,6 +76,15 @@ export class StepRepository {
 
   async updateOrder(scriptId: string, stepIds: number[]): Promise<void> {
     await this.repo.manager.transaction(async (manager) => {
+      // 第一阶段：将所有步骤的 step_index 设为临时负值，释放原值避免唯一约束冲突
+      for (let index = 0; index < stepIds.length; index++) {
+        await manager.update(
+          StepEntity,
+          { id: stepIds[index], scriptId },
+          { stepIndex: -(index + 1) }
+        )
+      }
+      // 第二阶段：设为正确的目标值
       for (let index = 0; index < stepIds.length; index++) {
         await manager.update(
           StepEntity,

@@ -65,6 +65,7 @@ interface ScriptStore {
 
   // 步骤操作
   getStepsForScript: (scriptId: string) => Step[]
+  setScriptSteps: (scriptId: string, steps: Step[]) => void
   addStep: (scriptId: string, type: string, params: Record<string, string>, insertIndex?: number, name?: string) => Promise<void>
   updateStep: (stepId: number, type: string, params: Record<string, string>, name?: string) => Promise<void>
   deleteStep: (stepId: number) => Promise<void>
@@ -280,6 +281,17 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   },
 
   /**
+   * 直接设置脚本步骤列表（用于拖拽排序本地更新）
+   */
+  setScriptSteps: (scriptId, steps) => {
+    set((state) => ({
+      scripts: state.scripts.map((s) =>
+        s.id === scriptId ? { ...s, steps } : s
+      ),
+    }))
+  },
+
+  /**
    * 添加步骤
    */
   addStep: async (scriptId, type, params, insertIndex, name) => {
@@ -377,6 +389,8 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     if (!eng) return
     const serial = useDeviceStore.getState().deviceInfo?.serial
     if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    // 执行前先刷新步骤，确保使用最新的排序
+    await get().refreshSteps(scriptId)
     set({ executingStepIndex: 0 })
     try {
       await eng.runScript(scriptId, serial)
@@ -396,6 +410,8 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     const serial = useDeviceStore.getState().deviceInfo?.serial
     console.log('[ScriptStore] runStep:', { scriptId, stepIndex, serial, deviceInfo: useDeviceStore.getState().deviceInfo })
     if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    // 执行前先刷新步骤，确保步骤索引与 DB 一致
+    await get().refreshSteps(scriptId)
     set({ executingStepIndex: stepIndex })
     try {
       const result = await eng.runStep(scriptId, stepIndex, serial)

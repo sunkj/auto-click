@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useScriptStore, Step } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,8 @@ import {
   Pointer,
   FolderClosed,
   House,
+  GripVertical,
+  CircleDot,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -50,8 +52,66 @@ export function StepPanel() {
   const [editScriptFolder, setEditScriptFolder] = useState<string | null>(null)
   const [deleteStepTarget, setDeleteStepTarget] = useState<Step | null>(null)
   const [editingStep, setEditingStep] = useState<Step | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const draggedIndex = useRef<number | null>(null)
   const currentScript = scripts.find((s) => s.id === currentScriptId)
   const folders = scripts.filter((s) => s.type === 'folder')
+
+  // 拖拽排序：开始拖拽
+  const handleDragStart = (idx: number) => {
+    draggedIndex.current = idx
+  }
+
+  // 拖拽排序：拖拽经过
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedIndex.current !== idx) {
+      setDragOverIndex(idx)
+    }
+  }
+
+  // 拖拽排序：离开
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  // 拖拽排序：放下
+  const handleDrop = async (e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault()
+    setDragOverIndex(null)
+    const fromIdx = draggedIndex.current
+    draggedIndex.current = null
+    if (fromIdx === null || fromIdx === dropIdx) return
+
+    const store = useScriptStore.getState()
+
+    // 持久化到后端（传递排序后的 stepId 数组）
+    const steps = store.getStepsForScript(currentScriptId!)
+    const stepIds = steps.map((s) => Number(s.id))
+    // 重新排列 stepIds 匹配拖拽后的顺序
+    const [movedId] = stepIds.splice(fromIdx, 1)
+    stepIds.splice(dropIdx, 0, movedId)
+
+    try {
+      const api = window.electronAPI?.script
+      if (api) {
+        await api.updateStepsOrder(currentScriptId!, stepIds)
+      }
+      // 持久化成功后，从后端重新加载步骤确保本地与 DB 完全同步
+      await store.refreshSteps(currentScriptId!)
+    } catch (error) {
+      console.error('[StepPanel] 保存排序失败:', error)
+      // 回滚：刷新步骤恢复原始顺序
+      await store.refreshSteps(currentScriptId!)
+    }
+  }
+
+  // 拖拽排序：结束
+  const handleDragEnd = () => {
+    draggedIndex.current = null
+    setDragOverIndex(null)
+  }
 
   // 打开编辑脚本弹窗
   const handleOpenEditScript = () => {
@@ -189,36 +249,58 @@ export function StepPanel() {
               const isSelected = selectedStepId === step.id
               const isExecuting = executingStepIndex === (step.index - 1)
               const isLast = _idx === steps.length - 1
+              const isDragOver = dragOverIndex === _idx && draggedIndex.current !== _idx
 
               return (
                 <div key={step.id}>
-                  <button
-                    onClick={() => setSelectedStep(isSelected ? null : step.id)}
+                  {/* 拖拽放置指示线 */}
+                  {isDragOver && (
+                    <div className="h-0.5 bg-primary mx-3 rounded-full" />
+                  )}
+                  <div
+                    draggable
+                    onDragStart={() => handleDragStart(_idx)}
+                    onDragOver={(e) => handleDragOver(e, _idx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, _idx)}
+                    onDragEnd={handleDragEnd}
                     className={cn(
-                      'w-full flex items-start gap-3 px-3 py-3 text-left transition-colors',
+                      'group flex items-start gap-1 px-2 py-3 transition-colors',
                       isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500' : '',
-                      isSelected ? 'bg-accent' : 'hover:bg-accent/50'
+                      isSelected ? 'bg-accent' : 'hover:bg-accent/50',
+                      draggedIndex.current === _idx ? 'opacity-50' : ''
                     )}
                   >
-                    {/* Step Number */}
-                    <div className="flex items-center gap-2 min-w-[28px]">
-                      <span className="text-xs font-mono text-muted-foreground w-4 text-right">
-                        {step.index}
-                      </span>
-                      <StepIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    {/* 拖拽手柄 */}
+                    <div className="flex items-center pt-0.5 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
                     </div>
-                    {/* Step Content */}
-                    <div className="flex-1 min-w-0 mt-[-2px]">
-                      <div className="text-sm font-medium truncate">{step.name || stepLabels[step.type] || step.type}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {step.description}
+
+                    {/* 步骤主体 */}
+                    <button
+                      onClick={() => setSelectedStep(isSelected ? null : step.id)}
+                      className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                    >
+                      {/* Step Number + Icon */}
+                      <div className="flex items-center gap-2 min-w-[28px]">
+                        <span className="text-xs font-mono text-muted-foreground w-4 text-right">
+                          {step.index}
+                        </span>
+                        <StepIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                       </div>
-                    </div>
-                  </button>
+                      {/* Step Content */}
+                      <div className="flex-1 min-w-0 mt-[-2px]">
+                        <div className="text-sm font-medium truncate">{step.name || stepLabels[step.type] || step.type}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {step.description}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
 
                   {/* Operations Row (when selected) */}
                   {isSelected && (
-                    <div className="flex items-center gap-1 px-3 pb-2 pl-[60px] pt-2 border-b border-border/50">
+                    <div className="flex items-center gap-1 px-3 pb-2 pl-[68px] pt-0 border-b border-border/50">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -244,7 +326,7 @@ export function StepPanel() {
                     </div>
                   )}
 
-                  {/* Border between steps */}
+                  {/* Border between steps（选中状态下由 operations row 的 border 代替） */}
                   {!isSelected && !isLast && <div className="ml-[60px] border-b border-border/30" />}
                 </div>
               )
