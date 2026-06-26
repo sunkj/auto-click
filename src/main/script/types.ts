@@ -3,7 +3,7 @@
  */
 
 /** 步骤类型枚举 */
-export type StepType = 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home'
+export type StepType = 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home' | 'openApp'
 
 /** click 步骤参数 */
 export interface ClickStepData {
@@ -44,8 +44,14 @@ export interface HomeStepData {
   description?: string
 }
 
+/** openApp 步骤参数 */
+export interface OpenAppStepData {
+  appName: string
+  description?: string
+}
+
 /** 步骤参数联合类型 */
-export type StepData = ClickStepData | TypeStepData | SwipeStepData | ScriptStepData | LongPressStepData | HomeStepData
+export type StepData = ClickStepData | TypeStepData | SwipeStepData | ScriptStepData | LongPressStepData | HomeStepData | OpenAppStepData
 
 /** 脚本类型 */
 export type ScriptType = 'folder' | 'script'

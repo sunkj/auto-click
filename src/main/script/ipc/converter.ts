@@ -13,6 +13,7 @@ import type {
   ScriptStepData,
   LongPressStepData,
   HomeStepData,
+  OpenAppStepData,
   CreateStepParams,
 } from '../types'
 
@@ -23,7 +24,7 @@ import type {
 export interface RendererStep {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'home'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp'
   params: Record<string, string>
   description: string
   name: string
@@ -88,6 +89,12 @@ function flattenStepData(type: string, data: StepData): {
       description = d.description ?? '回主屏幕'
       break
     }
+    case 'openApp': {
+      const d = data as OpenAppStepData
+      params.appName = d.appName
+      description = d.description ?? `打开 ${d.appName}`
+      break
+    }
   }
 
   return { params, description }
@@ -150,6 +157,11 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
       return {
         description: params.description || undefined,
       } as HomeStepData
+    case 'openApp':
+      return {
+        appName: params.appName || '',
+        description: params.description || undefined,
+      } as OpenAppStepData
     case 'script':
       return {
         scriptName: params.scriptName || '',

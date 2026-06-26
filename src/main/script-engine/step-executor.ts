@@ -1,6 +1,7 @@
 import { adbExec } from './adb-executor'
 import type { EngineStep, ExecutionContext, StepResult } from './types'
 import { ScriptEngineError, ErrorCode } from './errors'
+import { findElementByUiAutomator } from './uiautomator-service'
 
 /** 步骤执行器 — 通过 adb shell 直接执行命令，不依赖 screen-mirror */
 export class StepExecutor {
@@ -22,6 +23,9 @@ export class StepExecutor {
           break
         case 'home':
           await this.executeHome(context.serial)
+          break
+        case 'openApp':
+          await this.executeOpenApp(step.data, context.serial)
           break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
@@ -112,5 +116,26 @@ export class StepExecutor {
   /** 执行回主屏幕操作 */
   private async executeHome(serial: string): Promise<void> {
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
+  }
+
+  /** 执行打开App操作 — 通过 UI Automator 找到应用图标并点击 */
+  private async executeOpenApp(data: Record<string, any>, serial: string): Promise<void> {
+    const appName = String(data.appName || '')
+    if (!appName) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '应用名称不能为空')
+    }
+    // 先回主屏幕
+    await adbExec.keyEvent(serial, 'KEYCODE_HOME')
+    // 等待主屏幕渲染
+    await new Promise((r) => setTimeout(r, 800))
+    // 通过 UI Automator 查找应用图标
+    const { width: dw, height: dh } = await adbExec.getResolution(serial)
+    const result = await findElementByUiAutomator(serial, appName, dw, dh)
+    if (!result.elements || result.elements.length === 0) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未在主屏幕找到应用 "${appName}"`)
+    }
+    // 点击第一个匹配元素（按面积排序，最小的最精确）
+    const target = result.elements[0]
+    await adbExec.tap(serial, target.center.x, target.center.y)
   }
 }

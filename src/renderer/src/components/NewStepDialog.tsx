@@ -12,9 +12,10 @@ import {
   Pointer,
   Database,
   House,
+  AppWindow,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp'
 
 interface NewStepDialogProps {
   open: boolean
@@ -28,6 +29,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   swipe: { label: '滑动', icon: ArrowUpDown, color: 'text-purple-500' },
   longpress: { label: '长按', icon: Pointer, color: 'text-red-500' },
   home: { label: '回主屏幕', icon: House, color: 'text-orange-500' },
+  openApp: { label: '打开App', icon: AppWindow, color: 'text-sky-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -48,6 +50,7 @@ const typeLabels: Record<StepType, string> = {
   swipe: '滑动',
   longpress: '长按',
   home: '回主屏幕',
+  openApp: '打开App',
 }
 
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
@@ -64,6 +67,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       direction: 'Up',
       duration: '',
       pressDuration: '1.0',
+      appName: '',
     }
   )
 
@@ -76,7 +80,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     } else {
       setStepType('click')
       setStepName('点击')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '' })
     }
   }, [editStep])
 
@@ -123,7 +127,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp']
 
   // 从录制记录选择
   const [showRecordSelector, setShowRecordSelector] = useState(false)
@@ -249,6 +253,23 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
         return (
           <div className="py-4 text-center text-sm text-muted-foreground">
             回主屏幕操作无需额外参数
+          </div>
+        )
+      case 'openApp':
+        return (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">应用名称</label>
+              <Input
+                placeholder="微信"
+                value={params.appName}
+                onChange={(e) => handleParamChange('appName', e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+              💡 提示：需要把应用放到主屏幕，不支持在主屏幕之外（如第二屏、第三屏）
+            </div>
           </div>
         )
     }

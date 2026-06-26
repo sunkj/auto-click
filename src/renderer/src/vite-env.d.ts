@@ -11,7 +11,7 @@ interface IpcResult<T = unknown> {
 interface RendererStep {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'home'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp'
   params: Record<string, string>
   description: string
   name: string

@@ -104,4 +104,5 @@ export const adbExec = {
       encoding: 'utf-8', timeout: 10000,
     })
   },
+
 }
