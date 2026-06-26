@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useScriptStore, Step } from '@/stores/scriptStore'
+import { RecordedClickListDialog } from '@/components/RecordedClickListDialog'
 import {
   MousePointerClick,
   Keyboard,
   ArrowUpDown,
   Pointer,
+  Database,
 } from 'lucide-react'
 
 type StepType = 'click' | 'type' | 'swipe' | 'longpress'
@@ -120,6 +122,9 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
 
   const types: StepType[] = ['click', 'type', 'swipe', 'longpress']
 
+  // 从录制记录选择
+  const [showRecordSelector, setShowRecordSelector] = useState(false)
+
   const renderParams = () => {
     switch (stepType) {
       case 'click':
@@ -144,6 +149,17 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
                   className="h-8 text-sm"
                 />
               </div>
+            </div>
+            <div className="!mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-7 text-xs gap-1.5"
+                onClick={() => setShowRecordSelector(true)}
+              >
+                <Database className="h-3 w-3" />
+                从录制记录中选择
+              </Button>
             </div>
           </div>
         )
@@ -230,6 +246,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogHeader>
         <DialogTitle>{isEditMode ? '编辑步骤' : '添加步骤'}</DialogTitle>
@@ -284,6 +301,21 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
           {isEditMode ? '保存' : '添加'}
         </Button>
       </DialogFooter>
+
+
     </Dialog>
+
+      {/* 从录制记录选择弹窗（在 Dialog 外部渲染，避免嵌套冲突） */}
+      <RecordedClickListDialog
+        open={showRecordSelector}
+        onOpenChange={setShowRecordSelector}
+        selectMode
+        onSelect={(item) => {
+          handleParamChange('x', String(item.x))
+          handleParamChange('y', String(item.y))
+          setStepName(item.name)
+        }}
+      />
+    </>
   )
 }
