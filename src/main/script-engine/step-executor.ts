@@ -3,9 +3,7 @@ import type { EngineStep, ExecutionContext, StepResult } from './types'
 import { ScriptEngineError, ErrorCode } from './errors'
 import { findElementByUiAutomator } from './uiautomator-service'
 import { loadConfig } from '../config'
-import { DeepSeekService } from '../ai-agent/services/deepseek-service'
-import { loadDynamicTools } from '../ai-agent/tools/dynamic-tools'
-import { convertToEngineSteps } from '../ai-agent/tools/step-converter'
+import { createParseGraph } from '../ai-agent/graph'
 
 /** 步骤执行器 — 通过 adb shell 直接执行命令，不依赖 screen-mirror */
 export class StepExecutor {
@@ -125,28 +123,39 @@ export class StepExecutor {
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
   }
 
-  /** 执行 AI 步骤 — 解析描述 → 转为 engine steps → 逐条执行 */
+  /** 执行 AI 步骤 — 通过 ai-agent 子图解析 → 转为 engine steps → 逐条执行 */
   private async executeAi(data: Record<string, any>, context: ExecutionContext): Promise<void> {
     const description = String(data.description || '')
     if (!description) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, 'AI 执行描述不能为空')
     }
 
-    const deepseek = new DeepSeekService()
-    const availableTools = await loadDynamicTools()
-    const intent = await deepseek.parseIntent(description, availableTools)
-    const subSteps = convertToEngineSteps(intent, null, availableTools)
+    const parseGraph = createParseGraph()
+    const parseState: any = {
+      userInput: description,
+      deviceSerial: context.serial,
+      deviceResolution: { width: 1080, height: 2400 },
+      intent: null,
+      availableTools: [],
+      screenshotBase64: null,
+      screenCheckResult: null,
+      engineSteps: [],
+    }
 
-    if (subSteps.length === 0) return
+    const { engineSteps: subSteps } = await parseGraph.invoke(parseState)
 
-    for (const step of subSteps) {
-      const result = await this.execute(step, context)
+    if (!subSteps || subSteps.length === 0) return
+
+    const config = loadConfig()
+    const stepInterval = config.stepInterval || 3
+
+    for (let i = 0; i < subSteps.length; i++) {
+      const result = await this.execute(subSteps[i], context)
       if (!result.success) {
         throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `AI 子步骤失败: ${result.error}`)
       }
-      const delay = step.delay ?? 0
-      if (delay > 0) {
-        await new Promise((r) => setTimeout(r, delay * 1000))
+      if (i < subSteps.length - 1 && stepInterval > 0) {
+        await new Promise((r) => setTimeout(r, stepInterval * 1000))
       }
     }
   }
