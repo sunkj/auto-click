@@ -14,6 +14,7 @@ import type {
   LongPressStepData,
   HomeStepData,
   OpenAppStepData,
+  AiStepData,
   CreateStepParams,
 } from '../types'
 
@@ -24,7 +25,7 @@ import type {
 export interface RendererStep {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp' | 'ai'
   params: Record<string, string>
   description: string
   name: string
@@ -93,6 +94,12 @@ function flattenStepData(type: string, data: StepData): {
       const d = data as OpenAppStepData
       params.appName = d.appName
       description = d.description ?? `打开 ${d.appName}`
+      break
+    }
+    case 'ai': {
+      const d = data as AiStepData
+      params.description = d.description ?? ''
+      description = d.description ?? 'AI'
       break
     }
   }
@@ -167,6 +174,10 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
         scriptName: params.scriptName || '',
         description: params.description || undefined,
       } as ScriptStepData
+    case 'ai':
+      return {
+        description: params.description || undefined,
+      } as AiStepData
     default:
       throw new Error(`未知的步骤类型: ${type}`)
   }
