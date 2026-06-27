@@ -17,16 +17,6 @@ export interface AgentState {
   intent: IntentResult | null
   /** 可供 AI 调用的动态工具列表 */
   availableTools: DynamicToolDef[]
-  screenshotBase64: string | null
-  screenshotPath: string | null
-  /** 缩放后图片的实际宽度（传给 VLM 的尺寸） */
-  scaledWidth: number
-  /** 缩放后图片的实际高度（传给 VLM 的尺寸） */
-  scaledHeight: number
-  visualResult: VisualResult | null
-  calibratedCoords: CalibratedCoord | null
-  /** 打开 App 前是否需要先回桌面 */
-  needsHomeFirst: boolean
   engineSteps: EngineStep[]
 
   // 输出

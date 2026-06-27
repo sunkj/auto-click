@@ -158,7 +158,7 @@ export function convertToEngineSteps(
       // 复合指令：递归转换每个子步骤
       if (params?.steps) {
         for (const subIntent of params.steps) {
-          const subSteps = convertToEngineSteps(subIntent, calibratedCoords)
+          const subSteps = convertToEngineSteps(subIntent, calibratedCoords, availableTools)
           steps.push(...subSteps)
         }
       }

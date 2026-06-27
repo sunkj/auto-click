@@ -79,31 +79,24 @@ export async function loadDynamicTools(): Promise<DynamicToolDef[]> {
  * 生成 AI 可读的工具描述文本（注入到提示词中）
  */
 export function formatToolsForPrompt(tools: DynamicToolDef[]): string {
-  if (tools.length === 0) return ''
+  if (tools.length === 0) return '（暂无可用快捷工具）'
 
   const lines = tools.map((t) => {
     if (t.source === 'builtin') {
       if (t.builtinAction === 'home') {
-        return `  - "${t.name}"：返回手机主屏幕`
+        return `- "${t.name}"：返回手机主屏幕`
       }
       if (t.builtinAction === 'openApp') {
-        return `  - "${t.name}"：打开指定 App`
+        return `- "${t.name}"：打开指定 App`
       }
     }
     if (t.source === 'recorded_click') {
-      return `  - "${t.name}"：在位置 (${t.clickPos!.x}, ${t.clickPos!.y}) 处执行点击`
+      return `- "${t.name}"：在位置 (${t.clickPos!.x}, ${t.clickPos!.y}) 处执行点击`
     }
     return ''
   })
 
-  return [
-    '',
-    '===== 可用快捷工具 =====',
-    '以下是你可以直接调用的快捷操作（通过 call_tool 动作）：',
-    ...lines,
-    '使用方式：如果用户指令匹配某个工具名称，直接返回 { "action": "call_tool", "target": "工具名称" }',
-    '=======================',
-  ].join('\n')
+  return lines.filter(Boolean).join('\n')
 }
 
 /**

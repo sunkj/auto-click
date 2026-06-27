@@ -24,7 +24,8 @@ export async function scriptEngineExecutorNode(state: AgentState): Promise<Parti
 
   const config = loadConfig()
   const scriptId = `ai-agent-${Date.now()}`
-  const stepInterval = config.stepInterval || 0
+  // 使用设置中的步骤间隔时间（秒），忽略步骤自身的 delay
+  const stepInterval = config.stepInterval || 3
   const maxRetries = config.maxRetries || 0
 
   const ctx = createExecutionContext(scriptId, deviceSerial, engineSteps, stepInterval)
@@ -64,12 +65,9 @@ export async function scriptEngineExecutorNode(state: AgentState): Promise<Parti
 
     completedSteps++
 
-    // 步骤间延迟
-    if (i < totalSteps - 1) {
-      const delay = engineSteps[i].delay ?? stepInterval
-      if (delay > 0) {
-        await new Promise((r) => setTimeout(r, delay * 1000))
-      }
+    // 步骤间延迟（使用设置中的间隔时间）
+    if (i < totalSteps - 1 && stepInterval > 0) {
+      await new Promise((r) => setTimeout(r, stepInterval * 1000))
     }
   }
 
