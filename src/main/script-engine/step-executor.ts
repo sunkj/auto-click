@@ -2,6 +2,7 @@ import { adbExec } from './adb-executor'
 import type { EngineStep, ExecutionContext, StepResult } from './types'
 import { ScriptEngineError, ErrorCode } from './errors'
 import { findElementByUiAutomator } from './uiautomator-service'
+import { loadConfig } from '../config'
 
 /** 步骤执行器 — 通过 adb shell 直接执行命令，不依赖 screen-mirror */
 export class StepExecutor {
@@ -118,20 +119,61 @@ export class StepExecutor {
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
   }
 
-  /** 执行打开App操作 — 通过 UI Automator 找到应用图标并点击 */
+  /** 执行打开App操作 — 逐页扫描找到应用图标并点击 */
   private async executeOpenApp(data: Record<string, any>, serial: string): Promise<void> {
     const appName = String(data.appName || '')
     if (!appName) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '应用名称不能为空')
     }
-    // 通过 UI Automator 查找应用图标
     const { width: dw, height: dh } = await adbExec.getResolution(serial)
-    const result = await findElementByUiAutomator(serial, appName, dw, dh)
-    if (!result.elements || result.elements.length === 0) {
-      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未找到应用 "${appName}"`)
+    const config = loadConfig()
+    const maxPages = config.aiAgent?.workflow?.appScanPages ?? 3
+    const centerX = Math.round(dw / 2)
+    const centerY = Math.round(dh / 2)
+    const swipeDist = Math.round(dw * 0.4)
+
+    // 辅助：滑动并等待
+    const swipeLeft = () => adbExec.swipe(serial, centerX, centerY, centerX - swipeDist, centerY, 300)
+    const swipeRight = () => adbExec.swipe(serial, centerX, centerY, centerX + swipeDist, centerY, 300)
+    const searchApp = async (): Promise<boolean> => {
+      const result = await findElementByUiAutomator(serial, appName, dw, dh)
+      if (result.elements && result.elements.length > 0) {
+        await adbExec.tap(serial, result.elements[0].center.x, result.elements[0].center.y)
+        return true
+      }
+      return false
     }
-    // 点击第一个匹配元素（按面积排序，最小的最精确）
-    const target = result.elements[0]
-    await adbExec.tap(serial, target.center.x, target.center.y)
+    const delay = () => new Promise((r) => setTimeout(r, 600))
+
+    // 1. 从首页开始，先查找当前页
+    if (await searchApp()) return
+
+    // 2. 左滑查找右侧页面（每滑一次查一次）
+    for (let i = 0; i < maxPages; i++) {
+      await swipeLeft()
+      await delay()
+      if (await searchApp()) return
+    }
+
+    // 3. 原路返回首页：右滑 N 次
+    for (let i = 0; i < maxPages; i++) {
+      await swipeRight()
+      await delay()
+    }
+
+    // 4. 右滑查找左侧页面（每滑一次查一次）
+    for (let i = 0; i < maxPages; i++) {
+      await swipeRight()
+      await delay()
+      if (await searchApp()) return
+    }
+
+    // 5. 原路返回首页：左滑 N 次
+    for (let i = 0; i < maxPages; i++) {
+      await swipeLeft()
+      await delay()
+    }
+
+    throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未找到应用 "${appName}"`)
   }
 }

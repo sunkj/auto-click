@@ -243,10 +243,11 @@ function ZhipuSettingsForm({ config, onChange }: {
 // 组件：脚本设置表单
 // =============================================================================
 
-function ScriptSettingsForm({ scriptTimeout, stepInterval, maxRetries, onChange }: {
+function ScriptSettingsForm({ scriptTimeout, stepInterval, maxRetries, appScanPages, onChange }: {
   scriptTimeout: string
   stepInterval: string
   maxRetries: string
+  appScanPages: string
   onChange: (key: string, value: string) => void
 }) {
   return (
@@ -294,6 +295,23 @@ function ScriptSettingsForm({ scriptTimeout, stepInterval, maxRetries, onChange 
           className="h-10 text-sm bg-background border-input text-foreground font-mono w-[128px]"
         />
       </div>
+
+      <div className="flex flex-col gap-[8px] items-start w-full">
+        <label className="text-xs font-medium text-foreground tracking-[0.24px]">
+          App 桌面扫描页数
+        </label>
+        <Input
+          type="number"
+          min="1"
+          max="10"
+          value={appScanPages}
+          onChange={(e) => onChange('appScanPages', e.target.value)}
+          className="h-10 text-sm bg-background border-input text-foreground font-mono w-[128px]"
+        />
+        <p className="text-xs text-muted-foreground/70 leading-5">
+          打开 App 时扫描桌面的页数（先左滑 N 次，再右滑 N 次）
+        </p>
+      </div>
     </div>
   )
 }
@@ -310,6 +328,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [scriptTimeout, setScriptTimeout] = useState('1800')
   const [stepInterval, setStepInterval] = useState('0.5')
   const [maxRetries, setMaxRetries] = useState('3')
+  const [appScanPages, setAppScanPages] = useState('3')
 
   // DeepSeek 设置
   const [dsApiKey, setDsApiKey] = useState('')
@@ -341,6 +360,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setStepInterval(String(cfg.stepInterval ?? 0.5))
       setMaxRetries(String(cfg.maxRetries ?? 3))
 
+      const wf = cfg.aiAgent?.workflow || {}
+      setAppScanPages(String(wf.appScanPages ?? 3))
+
       const ai = cfg.aiAgent || {}
       const ds = ai.deepseek || {}
       setDsApiKey(ds.apiKey ?? '')
@@ -369,6 +391,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       case 'scriptTimeout': setScriptTimeout(value); break
       case 'stepInterval': setStepInterval(value); break
       case 'maxRetries': setMaxRetries(value); break
+      case 'appScanPages': setAppScanPages(value); break
     }
   }
 
@@ -429,6 +452,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           retryDelay: 1000,
           defaultDuration: 300,
           longPressDuration: 1500,
+          appScanPages: Number(appScanPages) || 3,
         },
       },
     })
@@ -479,6 +503,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 scriptTimeout={scriptTimeout}
                 stepInterval={stepInterval}
                 maxRetries={maxRetries}
+                appScanPages={appScanPages}
                 onChange={handleScriptChange}
               />
             )}

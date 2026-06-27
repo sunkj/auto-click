@@ -39,6 +39,8 @@ export interface AiAgentConfig {
     retryDelay: number
     defaultDuration: number
     longPressDuration: number
+    /** 打开 App 时扫描桌面页数（先左滑 N 次，再右滑 N 次） */
+    appScanPages: number
   }
 }
 
@@ -70,6 +72,7 @@ const DEFAULT_AI_CONFIG: AiAgentConfig = {
     retryDelay: 1000,
     defaultDuration: 300,
     longPressDuration: 1500,
+    appScanPages: 3,
   },
 }
 
