@@ -1,0 +1,135 @@
+/**
+ * DeepSeek — 意图理解服务
+ *
+ * 使用 @langchain/openai (ChatOpenAI) 调用 DeepSeek Chat API，
+ * 将用户的自然语言指令解析为结构化动作指令。
+ */
+import { ChatOpenAI } from '@langchain/openai'
+import type { IntentResult, DynamicToolDef } from '../types'
+import { loadConfig } from '../../config'
+import { formatToolsForPrompt } from '../tools/dynamic-tools'
+
+/** 意图理解提示词模板 */
+const INTENT_PARSER_PROMPT = `你是一个手机自动化操作指令解析器。你需要将用户的自然语言指令解析为结构化的动作指令。
+
+可用动作类型：
+- tap：点击指定元素
+- swipe：滑动屏幕（方向：up/down/left/right）
+- longPress：长按指定元素
+- input：输入文本
+- keyEvent：系统按键（HOME/BACK/MENU/POWER/APP_SWITCH）
+- home：返回桌面/回到首页（不需目标，params 留空）
+- openApp：打开指定 App（target 传 App 名称，如"微信"）
+- call_tool：直接调用已有的快捷工具（target 传工具名称，配合下方可用快捷工具使用）
+- sequence：多步骤复合指令
+
+返回格式示例：
+{
+  "action": "tap",
+  "target": "微信图标",
+  "params": {},
+  "confidence": 0.95
+}
+
+用户指令：{{userInput}}`
+
+export class DeepSeekService {
+  private _chatModel: ChatOpenAI | null = null
+  private config = loadConfig()
+
+  private getChatModel(): ChatOpenAI {
+    if (!this._chatModel) {
+      const cfg = this.config.aiAgent!.deepseek
+      if (!cfg.apiKey) {
+        throw new Error('请先在系统设置中配置 DeepSeek API Key')
+      }
+      this._chatModel = new ChatOpenAI({
+        apiKey: cfg.apiKey,
+        model: cfg.chatModel,
+        temperature: cfg.temperature,
+        maxTokens: cfg.maxTokens,
+        timeout: cfg.timeout,
+        configuration: { baseURL: cfg.baseUrl },
+      })
+    }
+    return this._chatModel
+  }
+
+  /**
+   * 意图理解 — 将用户自然语言解析为结构化动作指令
+   *
+   * @param userInput 用户输入
+   * @param availableTools 可用的动态工具列表（录制记录 + 内置操作），
+   *                       如果用户指令匹配某个工具名称，AI 会返回 call_tool 动作
+   *
+   * 支持在指令中直接指定坐标，如："点击 500 1000"、"滑动 300 500 到 100 200"
+   */
+  async parseIntent(userInput: string, availableTools?: DynamicToolDef[]): Promise<IntentResult> {
+    // 优先尝试从指令中提取显式坐标
+    const explicitCoords = extractExplicitCoordinates(userInput)
+    if (explicitCoords) {
+      return explicitCoords
+    }
+
+    // 注入动态工具信息
+    const toolsSection = availableTools ? formatToolsForPrompt(availableTools) : ''
+    const prompt = INTENT_PARSER_PROMPT.replace('{{userInput}}', userInput) + toolsSection
+
+    const response = await this.getChatModel().invoke([
+      { role: 'system', content: prompt },
+      { role: 'user', content: userInput },
+    ])
+
+    const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
+    console.log('[DeepSeek] parseIntent 原始输出:', text)
+    const jsonStr = extractJson(text)
+    const parsed = JSON.parse(jsonStr)
+
+    return {
+      action: parsed.action || 'tap',
+      target: parsed.target || '',
+      params: parsed.params || undefined,
+      confidence: parsed.confidence || 0.5,
+    }
+  }
+}
+
+/** 从用户指令中提取显式坐标 */
+function extractExplicitCoordinates(input: string): IntentResult | null {
+  // 匹配 "点击 500 1000" 或 "点击 500,1000" 或 "tap 500 1000"
+  const tapMatch = input.match(/^(点击|tap|点)\s*(\d+)\s*[,，]?\s*(\d+)$/i)
+  if (tapMatch) {
+    return {
+      action: 'tap',
+      target: `坐标 (${tapMatch[2]}, ${tapMatch[3]})`,
+      params: { explicitCoords: { x: parseInt(tapMatch[2]), y: parseInt(tapMatch[3]) } },
+      confidence: 1.0,
+    }
+  }
+
+  // 匹配 "滑动 x1 y1 到 x2 y2" 或 "swipe x1 y1 x2 y2"
+  const swipeMatch = input.match(/^(滑动|swipe)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/i)
+  if (swipeMatch) {
+    return {
+      action: 'swipe',
+      target: `坐标`,
+      params: { direction: 'left', explicitCoords: { x: parseInt(swipeMatch[2]), y: parseInt(swipeMatch[3]) } },
+      confidence: 1.0,
+    }
+  }
+
+  return null
+}
+
+/** 从模型输出中提取 JSON 字符串 */
+function extractJson(text: string): string {
+  // 尝试解析 ```json ... ``` 包裹
+  const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (jsonBlockMatch) return jsonBlockMatch[1].trim()
+
+  // 尝试直接解析
+  const braceMatch = text.match(/\{[\s\S]*\}/)
+  if (braceMatch) return braceMatch[0]
+
+  return text
+}

@@ -1,5 +1,5 @@
 /**
- * UI Automator 布局解析服务
+ * UI Automator 布局解析工具
  *
  * 通过 `adb shell uiautomator dump` 获取当前屏幕的 UI 层级布局，
  * 解析 XML 找到目标元素的精确坐标（bounds）。
@@ -7,7 +7,8 @@
  * 相比 VLM 视觉定位，UI Automator 直接读取原生控件位置，
  * 坐标精度是像素级的，不受模型降采样影响。
  *
- * 固定文件名 /data/local/tmp/autoclick_ui.xml，避免生成过多文件撑爆存储。
+ * 设备端使用固定文件名 /data/local/tmp/autoclick_ui.xml，每次覆盖。
+ * PC 端使用临时目录存放 pull 下来的文件，用完即删。
  */
 import { exec } from 'child_process'
 import { promisify } from 'util'
@@ -58,7 +59,7 @@ export async function findElementByUiAutomator(
   console.log('[UiAutomator] XML 大小:', xmlContent.length, 'bytes')
 
   // 5. 删除本地临时文件
-//   try { fs.unlinkSync(LOCAL_FILE) } catch { /* ignore */ }
+  try { fs.unlinkSync(LOCAL_FILE) } catch { /* ignore */ }
 
   // 6. 解析 XML 查找目标元素
   const elements = parseUiXml(xmlContent, targetText, deviceWidth, deviceHeight)

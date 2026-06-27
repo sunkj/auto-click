@@ -1,98 +1,11 @@
 /**
- * 大模型服务封装
+ * 智谱 GLM-4V — 视觉分析服务
  *
- * DeepSeek — 意图理解（Chat， @langchain/openai）
- * 智谱    — 视觉分析（GLM-4V，HTTP fetch）
- *
- * 两个服务独立配置，互不依赖。
+ * 通过 HTTP fetch 直接调用智谱 GLM-4V API，
+ * 将截图传入视觉模型，返回目标元素在屏幕上的百分比坐标（0~1）。
  */
-import { ChatOpenAI } from '@langchain/openai'
 import type { IntentResult, VisualResult } from '../types'
 import { loadConfig } from '../../config'
-
-/** 意图理解提示词模板 */
-const INTENT_PARSER_PROMPT = `你是一个手机自动化操作指令解析器。你需要将用户的自然语言指令解析为结构化的动作指令。
-
-可用动作类型：
-- tap：点击指定元素
-- swipe：滑动屏幕（方向：up/down/left/right）
-- longPress：长按指定元素
-- input：输入文本
-- keyEvent：系统按键（HOME/BACK/MENU/POWER/APP_SWITCH）
-- sequence：多步骤复合指令
-
-请以 JSON 格式返回结果，格式如下：
-{
-  "action": "tap",
-  "target": "微信图标",
-  "params": {},
-  "confidence": 0.95
-}
-
-用户指令：{{userInput}}`
-
-// =============================================================================
-// DeepSeek — 意图理解
-// =============================================================================
-
-export class DeepSeekService {
-  private _chatModel: ChatOpenAI | null = null
-  private config = loadConfig()
-
-  private getChatModel(): ChatOpenAI {
-    if (!this._chatModel) {
-      const cfg = this.config.aiAgent!.deepseek
-      if (!cfg.apiKey) {
-        throw new Error('请先在系统设置中配置 DeepSeek API Key')
-      }
-      this._chatModel = new ChatOpenAI({
-        apiKey: cfg.apiKey,
-        model: cfg.chatModel,
-        temperature: cfg.temperature,
-        maxTokens: cfg.maxTokens,
-        timeout: cfg.timeout,
-        configuration: { baseURL: cfg.baseUrl },
-      })
-    }
-    return this._chatModel
-  }
-
-  /**
-   * 意图理解 — 将用户自然语言解析为结构化动作指令
-   *
-   * 支持在指令中直接指定坐标，如："点击 500 1000"、"滑动 300 500 到 100 200"
-   */
-  async parseIntent(userInput: string): Promise<IntentResult> {
-    // 优先尝试从指令中提取显式坐标
-    const explicitCoords = extractExplicitCoordinates(userInput)
-    if (explicitCoords) {
-      return explicitCoords
-    }
-
-    const prompt = INTENT_PARSER_PROMPT.replace('{{userInput}}', userInput)
-
-    const response = await this.getChatModel().invoke([
-      { role: 'system', content: prompt },
-      { role: 'user', content: userInput },
-    ])
-
-    const text = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
-    console.log('Big Model parseIntent 原始输出:', text)
-    const jsonStr = extractJson(text)
-    const parsed = JSON.parse(jsonStr)
-
-    return {
-      action: parsed.action || 'tap',
-      target: parsed.target || '',
-      params: parsed.params || undefined,
-      confidence: parsed.confidence || 0.5,
-    }
-  }
-}
-
-// =============================================================================
-// 智谱 GLM-4V — 视觉分析
-// =============================================================================
 
 export class ZhipuVisionService {
   private config = loadConfig()
@@ -108,7 +21,7 @@ export class ZhipuVisionService {
   async analyzeScreenshot(screenshotBase64: string, intent: IntentResult): Promise<VisualResult> {
     const cfg = this.config.aiAgent!.zhipu
     const baseUrl = cfg.baseUrl || 'https://open.bigmodel.cn/api/paas/v4'
-    console.log('[AiAgent] 智谱配置:', JSON.stringify({ apiKey: cfg.apiKey ? '***' : '', baseUrl, visionModel: cfg.visionModel }))
+    console.log('[智谱] 配置:', JSON.stringify({ apiKey: cfg.apiKey ? '***' : '', baseUrl, visionModel: cfg.visionModel }))
     if (!cfg.apiKey) {
       throw new Error('请先在系统设置中配置智谱 API Key')
     }
@@ -120,7 +33,7 @@ export class ZhipuVisionService {
     const imgW = this._imageWidth || resolution.width
     const imgH = this._imageHeight || resolution.height
 
-    console.log('[AiAgent] 智谱 VLM 请求参数:', JSON.stringify({
+    console.log('[智谱] VLM 请求参数:', JSON.stringify({
       deviceResolution: resolution,
       imageSize: `${imgW}x${imgH}`,
       target: intent.target,
@@ -181,7 +94,7 @@ export class ZhipuVisionService {
 
     const data = await response.json() as any
     const text = data.choices?.[0]?.message?.content || ''
-    console.log('Big Model analyzeScreenshot 原始输出:', text)
+    console.log('[智谱] analyzeScreenshot 原始输出:', text)
     const jsonStr = extractJson(text)
     const parsed = JSON.parse(jsonStr)
 
@@ -194,7 +107,7 @@ export class ZhipuVisionService {
       type: el.type,
     }))
 
-    console.log('[AiAgent] 智谱 VLM 返回坐标:', JSON.stringify({
+    console.log('[智谱] VLM 返回坐标:', JSON.stringify({
       imageSize: `${imgW}x${imgH}`,
       elements: elements.map((e: any) => ({ label: e.label, center: e.center, bounds: e.bounds })),
       rawDescription: parsed.rawDescription,
@@ -209,33 +122,6 @@ export class ZhipuVisionService {
     this._imageWidth = imageWidth
     this._imageHeight = imageHeight
   }
-}
-
-/** 从用户指令中提取显式坐标 */
-function extractExplicitCoordinates(input: string): IntentResult | null {
-  // 匹配 "点击 500 1000" 或 "点击 500,1000" 或 "tap 500 1000"
-  const tapMatch = input.match(/^(点击|tap|点)\s*(\d+)\s*[,，]?\s*(\d+)$/i)
-  if (tapMatch) {
-    return {
-      action: 'tap',
-      target: `坐标 (${tapMatch[2]}, ${tapMatch[3]})`,
-      params: { explicitCoords: { x: parseInt(tapMatch[2]), y: parseInt(tapMatch[3]) } },
-      confidence: 1.0,
-    }
-  }
-
-  // 匹配 "滑动 x1 y1 到 x2 y2" 或 "swipe x1 y1 x2 y2"
-  const swipeMatch = input.match(/^(滑动|swipe)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/i)
-  if (swipeMatch) {
-    return {
-      action: 'swipe',
-      target: `坐标`,
-      params: { direction: 'left', explicitCoords: { x: parseInt(swipeMatch[2]), y: parseInt(swipeMatch[3]) } },
-      confidence: 1.0,
-    }
-  }
-
-  return null
 }
 
 /** 从模型输出中提取 JSON 字符串 */

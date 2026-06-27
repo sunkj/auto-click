@@ -366,7 +366,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
         {/* 录制 & 查看 & 截图按钮 - 浮动在投屏区域右上角 */}
         {!isMinimized && (
-          <div className="absolute top-5 left-5 z-40 flex flex-col gap-1.5">
+          <div className="absolute top-5 left-5 z-40 flex flex-col gap-1">
             <RecordActionButtons
               isRecording={isRecording}
               onToggleRecording={() => setIsRecording((v) => !v)}

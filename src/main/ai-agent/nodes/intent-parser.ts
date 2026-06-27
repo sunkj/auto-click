@@ -1,13 +1,15 @@
 import type { AgentState } from '../types'
-import { DeepSeekService } from '../services/big-model-service'
+import { DeepSeekService } from '../services/deepseek-service'
+import { loadDynamicTools } from '../tools/dynamic-tools'
 
 const deepseek = new DeepSeekService()
 
 /**
  * 意图理解节点
  *
- * 调用 DeepSeek Chat 将用户自然语言指令解析为结构化的动作指令。
- * keyEvent 类型的指令不需要后续视觉分析。
+ * 1. 加载动态工具（录制记录 + 内置操作）
+ * 2. 注入到提示词中，让 AI 知道有哪些快捷工具可用
+ * 3. AI 可以返回 call_tool 直接调用已有工具，或返回常规动作
  */
 export async function intentParserNode(state: AgentState): Promise<Partial<AgentState>> {
   const { userInput } = state
@@ -16,11 +18,13 @@ export async function intentParserNode(state: AgentState): Promise<Partial<Agent
     throw new Error('指令不能为空')
   }
 
-  const intent = await deepseek.parseIntent(userInput)
+  // 加载动态工具
+  const availableTools = await loadDynamicTools()
+
+  const intent = await deepseek.parseIntent(userInput, availableTools)
 
   return {
     intent,
-    // 如果是 keyEvent 类型，后续不需要视觉分析
-    // keyEvent 类型的参数不需要坐标，由 step-converter 直接处理
+    availableTools,
   }
 }

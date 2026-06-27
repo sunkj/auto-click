@@ -1,7 +1,7 @@
 import type { AgentState, VisualResult } from '../types'
-import { ZhipuVisionService } from '../services/big-model-service'
-import { findElementByUiAutomator } from '../services/uiautomator-service'
-import { detectScreenContext } from '../services/screen-context'
+import { ZhipuVisionService } from '../services/zhipu-service'
+import { findElementByUiAutomator } from '../tools/uiautomator'
+import { detectScreenContext } from '../tools/screen-context'
 
 const zhipuVision = new ZhipuVisionService()
 

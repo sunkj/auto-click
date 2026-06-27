@@ -6,9 +6,12 @@
 - longPress：长按指定元素
 - input：输入文本
 - keyEvent：系统按键（HOME/BACK/MENU/POWER/APP_SWITCH）
+- home：返回桌面/回到首页（不需目标，params 留空）
+- openApp：打开指定 App（target 传 App 名称，如"微信"）
+- call_tool：直接调用已有的快捷工具（target 传工具名称，配合下方可用快捷工具使用）
 - sequence：多步骤复合指令
 
-请以 JSON 格式返回结果，格式如下：
+返回格式示例：
 {
   "action": "tap",
   "target": "微信图标",

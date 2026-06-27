@@ -1,4 +1,7 @@
 import type { EngineStep } from '../script-engine/types'
+import type { DynamicToolDef } from './tools/dynamic-tools'
+
+export type { DynamicToolDef }
 
 // =============================================================================
 // Agent 工作流状态
@@ -12,6 +15,8 @@ export interface AgentState {
 
   // 中间状态
   intent: IntentResult | null
+  /** 可供 AI 调用的动态工具列表 */
+  availableTools: DynamicToolDef[]
   screenshotBase64: string | null
   screenshotPath: string | null
   /** 缩放后图片的实际宽度（传给 VLM 的尺寸） */
@@ -20,6 +25,8 @@ export interface AgentState {
   scaledHeight: number
   visualResult: VisualResult | null
   calibratedCoords: CalibratedCoord | null
+  /** 打开 App 前是否需要先回桌面 */
+  needsHomeFirst: boolean
   engineSteps: EngineStep[]
 
   // 输出
@@ -39,7 +46,7 @@ export interface Resolution {
 // 意图理解
 // =============================================================================
 
-export type ActionType = 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence'
+export type ActionType = 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence' | 'home' | 'openApp' | 'call_tool'
 
 export interface IntentResult {
   action: ActionType
