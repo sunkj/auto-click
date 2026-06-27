@@ -1,9 +1,10 @@
-# AutoClick - AI智能操控详细设计（V1.1）
+# AutoClick - AI智能操控详细设计（V2.0 — 与实际实现同步）
 
 | **文档版本** | **修改日期** | **修改人** | **修改内容** |
 | :--- | :--- | :--- | :--- |
 | V1.0 | 2026-06-23 | AI Assistant | 初始创建，基于需求文档3.7节"AI智能操控"展开详细设计 |
 | V1.1 | 2026-06-23 | AI Assistant | 移除人工确认节点，指令生成后立即执行；将ADB直接调用改为转换为脚本引擎步骤并调用ScriptEngine执行 |
+| V2.0 | 2026-06-27 | AI Assistant | 重大重构：拆分ai-agent（纯解析）与ai-assistant（编排执行）；新增check_text文本检测节点、动态工具（已录制点击）、多步骤sequence支持；移除visual-analysis/coordinate-mapper节点 |
 
 ---
 
@@ -11,36 +12,48 @@
 
 ### 1.1 模块定位
 
-AI智能操控模块是 AutoClick 的高阶自动化能力扩展，它将用户的自然语言指令（如"点击微信"、"滑动到下一屏"）通过 LangGraph.js 编排的 AI Agent 工作流，结合 DeepSeek 多模态视觉模型对手机屏幕的实时理解，自动转换为精确的 ADB 控制命令并执行。
+AI智能操控是 AutoClick 的高阶自动化能力扩展，将用户的自然语言指令通过 LangGraph.js 编排的 AI Agent 工作流，结合大语言模型（DeepSeek Chat）和视觉模型（智谱GLM-4V），自动解析为精确的设备控制步骤并执行。
 
-### 1.2 职责边界
+### 1.2 模块拆分
+
+为解耦职责，AI智能操控模块拆分为两个子模块：
+
+| 模块 | 路径 | 职责 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **ai-agent（解析模块）** | `src/main/ai-agent/` | 意图解析 → 步骤转换 | 纯解析，不执行步骤；通过 LangGraph 子图（createParseGraph）将用户输入转为 EngineStep[] |
+| **ai-assistant（编排模块）** | `src/main/ai-assistant/` | 协调解析+执行 | 调用 ai-agent 的 parse graph 解析意图，再遍历执行 EngineStep[]；注册 IPC 处理器、管理历史记录 |
+
+### 1.3 职责边界
 
 | **职责** | **说明** |
 | :--- | :--- |
-| **语义指令解析** | 接收用户自然语言指令，通过 LLM 解析为结构化动作意图 |
-| **屏幕视觉感知** | 截取当前手机屏幕，通过 VLM 识别 UI 元素位置和文本内容 |
-| **坐标映射与校准** | 将 VLM 返回的坐标根据设备分辨率校准，生成精确控制参数 |
-| **工作流编排** | 使用 LangGraph.js 编排多步骤 Agent 工作流，管理状态流转 |
-| **转换为脚本引擎步骤** | 将 VLM 解析结果转换为 `ScriptEngine` 的 `EngineStep[]` 格式，调用引擎执行 |
+| **语义指令解析**（ai-agent） | 接收用户自然语言指令，通过 LLM 解析为结构化动作意图，支持单步和多步sequence |
+| **屏幕视觉检测**（ai-agent） | 截取当前手机屏幕，通过 VLM（智谱GLM-4V）检测指定文本/元素是否存在 |
+| **动态工具注入**（ai-agent） | 从 recorded_clicks 表加载已录制的点击模板，作为工具注入 LLM 提示，AI 可引用已有坐标 |
+| **步骤转换**（ai-agent） | 将解析结果映射为 ScriptEngine 的 EngineStep[] 格式 |
+| **工作流编排**（ai-agent） | 使用 LangGraph.js 构建有向无环图，管理"意图解析→截图→视觉检测→步骤转换"的流程路由 |
+| **步骤执行**（ai-assistant） | 遍历 EngineStep[]，调用 StepExecutor 逐条执行 |
+| **IPC 协调**（ai-assistant） | 向渲染进程推送工作流状态、执行结果和错误信息 |
+| **历史记录管理**（ai-assistant） | 维护执行历史列表，支持查询 |
 
 | **不包含的职责** | **说明** |
 | :--- | :--- |
 | ADB 设备连接管理 | 由 screen-mirror 模块负责，本模块通过 serial 参数引用 |
 | 脚本数据持久化 | 由 ScriptService 负责 |
 | 投屏画面渲染 | 由 MirrorPanel / ScreenCanvas 负责 |
-| 触控命令底层执行 | 由 ScriptEngine 的 StepExecutor 负责，AI 模块不直接调用 ADB |
+| 触控命令底层执行 | 由 ScriptEngine 的 StepExecutor 负责，AI 模块不直接调用 ADB（除截图外） |
 
-### 1.3 架构决策
+### 1.4 架构决策
 
 | **决策项** | **选择** | **原因** |
 | :--- | :--- | :--- |
-| AI 编排框架 | LangGraph.js（@langchain/langgraph） | 原生支持 Node.js / TypeScript，有状态图编排能力，可与 Electron 主进程深度集成 |
-| 视觉模型 | DeepSeek 多模态（deepseek-vision） | 高性价比的多模态理解能力，OpenAI 兼容 API 便于集成 |
-| LLM 模型 | DeepSeek Chat | 意图解析和自然语言理解，与视觉模型统一 API 调用 |
-| 工作流运行位置 | Electron 主进程 | 可访问 ADB、文件系统和 IPC，渲染进程仅负责 UI 展示 |
-| 截图方式 | adb exec-out screencap -p | 独立于 scrcpy 视频流，在主进程中直接截取，避免耦合 |
-| 命令执行方式 | 转换为 EngineStep[] → 调用 ScriptEngine | 复用现有脚本引擎的执行能力（队列、重试、进度推送），避免重复实现 ADB 调用逻辑 |
-| 状态管理 | LangGraph StateGraph + Zustand（渲染进程） | LangGraph 管理 Agent 工作流状态，Zustand 管理 UI 展示状态 |
+| AI 编排框架 | LangGraph.js（@langchain/langgraph） | 原生支持 Node.js / TypeScript，有状态图编排能力 |
+| 视觉模型 | 智谱 GLM-4V（HTTP API） | 用于屏幕文本检测（check_text），直接 HTTP fetch 调用 |
+| LLM 模型 | DeepSeek Chat（@langchain/openai） | 意图解析和自然语言理解 |
+| 工作流拆分 | ai-agent（解析）+ ai-assistant（执行） | 职责分离，ai-agent 可被 StepExecutor.executeAi() 复用 |
+| 截图方式 | adb exec-out screencap -p | 独立于 scrcpy 视频流，在主进程中直接截取 |
+| 步骤执行方式 | StepExecutor.execute() | 复用现有脚本引擎的执行能力 |
+| 动态工具 | 从 recorded_clicks 表加载 | AI 可引用已录制的点击模板，减少 VLM 调用 |
 
 ---
 
@@ -55,14 +68,22 @@ AI智能操控模块是 AutoClick 的高阶自动化能力扩展，它将用户�
 | `@langchain/openai` | ^0.3.x | OpenAI 兼容 API 封装 | 对接 DeepSeek API（baseURL 指向 DeepSeek） |
 | `sharp` | ^0.33.x | 高性能图片处理 | 截图缩放、Base64 编解码、压缩优化 |
 | 系统 ADB | PATH 环境变量 | 截图与命令执行 | child_process.exec 异步调用 |
+| 智谱 GLM-4V | HTTP API | 屏幕文本检测 | 直接 fetch 调用（非 LangChain 封装） |
 
-### 2.2 备选方案说明
+### 2.2 模型分工
+
+| **模型** | **用途** | **封装方式** | **说明** |
+| :--- | :--- | :--- | :--- |
+| DeepSeek Chat | 意图理解 | @langchain/openai (ChatOpenAI) | 解析用户自然语言指令为结构化意图 |
+| 智谱 GLM-4V | 屏幕文本检测 | HTTP fetch 直接调用 | 传入截图，检测指定文本是否存在于画面中 |
+
+### 2.3 备选方案说明
 
 | **备选方案** | **优势** | **不选用的原因** |
 | :--- | :--- | :--- |
 | GPT-4o Vision | 识别精度更高 | 成本较高，DeepSeek 性价比更优 |
 | 本地 OCR + 语义理解 | 无 API 调用成本 | 无法处理复杂 UI 布局和图标识别，准确率低 |
-| LangChain Agent（非 Graph） | 更简单 | 缺少有状态图编排能力，无法处理复杂的分支和循环 |
+| LangChain Agent（非 Graph） | 更简单 | 缺少有状态图编排能力 |
 
 ---
 
@@ -70,89 +91,91 @@ AI智能操控模块是 AutoClick 的高阶自动化能力扩展，它将用户�
 
 ```
 src/main/
-├── ai-agent/                       # AI 智能操控模块
-│   ├── index.ts                    # 模块入口 + IPC Handler 注册
-│   ├── types.ts                    # 类型定义（工作流状态、节点输出等）
-│   ├── graph.ts                    # LangGraph StateGraph 定义与编译
-│   ├── config.ts                   # 模块配置（API Key、模型名、超时等）
+├── ai-agent/                       # AI 解析模块（纯解析，不执行）
+│   ├── index.ts                    # 模块入口
+│   ├── graph.ts                    # LangGraph 子图定义（createParseGraph）
+│   ├── types.ts                    # re-export from common/types
 │   ├── nodes/                      # 工作流各节点实现
 │   │   ├── intent-parser.ts        # 意图理解节点（LLM 调用）
 │   │   ├── screenshot.ts           # 截屏节点（ADB screencap）
-│   │   ├── visual-analysis.ts      # 视觉分析节点（VLM 调用）
-│   │   ├── coordinate-mapper.ts    # 坐标映射节点（分辨率校准）
-│   │   ├── step-converter.ts       # 步骤转换节点（AI 结果 → EngineStep[]）
-│   │   └── script-engine-executor.ts # 引擎执行节点（调用 ScriptEngine.runSteps()）
+│   │   ├── text-check.ts           # 屏幕文本检测节点（VLM 调用）
+│   │   └── step-converter.ts       # 步骤转换节点（AI 结果 → EngineStep[]）
 │   ├── services/                   # 服务层
-│   │   ├── deepseek-service.ts     # DeepSeek API 封装（LLM + VLM）
-│   │   └── screen-service.ts       # 截图与图片处理服务
+│   │   ├── deepseek-service.ts     # DeepSeek API 封装（LLM）
+│   │   ├── zhipu-service.ts        # 智谱 GLM-4V API 封装（视觉检测）
+│   │   ├── ocr-service.ts          # Tesseract OCR 服务
+│   │   ├── screen-context.ts       # 屏幕上下文管理
+│   │   ├── screen-service.ts       # 截图与图片处理服务
+│   │   └── uiautomator-service.ts  # UI Automator 元素查找服务
+│   ├── tools/                      # LangChain 工具
+│   │   ├── dynamic-tools.ts        # 动态工具（从 recorded_clicks 加载）
+│   │   ├── screenshot.ts           # 截图工具
+│   │   └── step-converter.ts       # 步骤转换工具
 │   ├── utils/                      # 工具函数
 │   │   ├── image-utils.ts          # 图片处理工具（压缩、Base64、对比）
 │   │   └── coordinate-utils.ts     # 坐标计算工具（相对/绝对转换）
 │   └── prompts/                    # 提示词模板
-│       ├── intent-parser.md         # 意图理解提示词
-│       └── visual-analysis.md       # 视觉分析提示词
-
-src/renderer/
-├── components/
-│   └── AiAgentPanel.tsx            # AI 智能操控面板组件
-├── stores/
-│   └── aiAgentStore.ts             # AI Agent 状态管理（Zustand）
-└── channels/
-    └── aiAgentChannels.ts          # IPC 通道常量
+│       └── intent-parser.md         # 意图理解提示词
+│
+├── ai-assistant/                   # AI 编排模块（协调解析+执行）
+│   ├── index.ts                    # 模块入口 + IPC Handler 注册
+│   ├── types.ts                    # 类型定义（re-export from common）
+│   └── execute-ai-workflow.ts      # 执行 AI 工作流（解析→遍历执行→返回结果）
+│
+├── common/                         # 公共模块
+│   └── types.ts                    # 公共类型定义（StepType, EngineStep, AgentState 等）
 ```
 
 ### 3.1 文件职责说明
 
 | **文件** | **职责** | **关键依赖** |
 | :--- | :--- | :--- |
-| `index.ts` | 模块入口，注册 ai-agent 相关 IPC 处理器 | graph, types, config |
-| `graph.ts` | 定义 StateGraph，编译为可执行应用 | nodes/*, types |
-| `types.ts` | AgentState、NodeOutput、IPC 消息类型定义 | — |
-| `config.ts` | API Key、模型名、超时、重试等配置 | — |
-| `nodes/intent-parser.ts` | LLM 意图理解节点实现 | deepseek-service, prompts |
-| `nodes/screenshot.ts` | ADB 截图节点实现 | screen-service |
-| `nodes/visual-analysis.ts` | VLM 视觉分析节点实现 | deepseek-service, image-utils, prompts |
-| `nodes/coordinate-mapper.ts` | 坐标校准节点实现 | coordinate-utils |
-| `nodes/step-converter.ts` | 步骤转换节点：AI 结果 → EngineStep[] | types |
-| `nodes/script-engine-executor.ts` | 引擎执行节点：调用 ScriptEngine.runSteps() | script-engine（外部） |
-| `services/deepseek-service.ts` | DeepSeek API 统一封装（Chat + Vision） | @langchain/openai |
-| `services/screen-service.ts` | ADB 截图 + sharp 图片处理 | sharp |
-| `services/adb-command-service.ts` |（可选）独立 ADB 命令执行 | child_process |
+| **ai-agent/graph.ts** | 定义 StateGraph（createParseGraph），编译为可执行子图 | nodes/*, types |
+| **ai-agent/nodes/intent-parser.ts** | LLM 意图理解节点 | deepseek-service, dynamic-tools |
+| **ai-agent/nodes/screenshot.ts** | ADB 截图节点 | screen-service |
+| **ai-agent/nodes/text-check.ts** | 屏幕文本检测节点 | zhipu-service, image-utils |
+| **ai-agent/nodes/step-converter.ts** | 步骤转换节点 | types |
+| **ai-agent/services/deepseek-service.ts** | DeepSeek API 封装 | @langchain/openai |
+| **ai-agent/services/zhipu-service.ts** | 智谱 GLM-4V API 封装 | HTTP fetch |
+| **ai-agent/tools/dynamic-tools.ts** | 动态工具：从 recorded_clicks 加载已录制点击 | RecordedClickRepository |
+| **ai-assistant/execute-ai-workflow.ts** | 执行工作流：调用 parse graph → 遍历执行 steps | ai-agent/graph, StepExecutor |
+| **ai-assistant/index.ts** | 模块入口，注册 IPC 处理器，管理历史记录 | execute-ai-workflow |
 
 ---
 
 ## 4. 模块依赖关系
 
 ```
-index.ts (IPC Handler 注册)
+ai-assistant/index.ts (IPC Handler 注册)
     │
     ▼
-graph.ts (StateGraph 编译)
+ai-assistant/execute-ai-workflow.ts
     │
-    ├── nodes/intent-parser.ts ──→ services/deepseek-service.ts
-    │                                   └── @langchain/openai → DeepSeek API
+    ├── ai-agent/graph.ts (createParseGraph → 解析意图)
+    │       │
+    │       ├── nodes/intent-parser.ts ──→ services/deepseek-service.ts
+    │       │                                   ├── @langchain/openai → DeepSeek API
+    │       │                                   └── tools/dynamic-tools.ts → RecordedClickRepository
+    │       │
+    │       ├── nodes/screenshot.ts ──→ services/screen-service.ts
+    │       │                               ├── child_process (adb exec-out screencap)
+    │       │                               └── sharp (图片压缩/编码)
+    │       │
+    │       ├── nodes/text-check.ts ──→ services/zhipu-service.ts
+    │       │                               └── HTTP fetch → 智谱 GLM-4V API
+    │       │
+    │       └── nodes/step-converter.ts ──→ types (EngineStep 格式映射)
     │
-    ├── nodes/screenshot.ts ──→ services/screen-service.ts
-    │                               ├── child_process (adb exec-out screencap)
-    │                               └── sharp (图片压缩/编码)
-    │
-    ├── nodes/visual-analysis.ts ──→ services/deepseek-service.ts
-    │                                   └── @langchain/openai → DeepSeek Vision API
-    │
-    ├── nodes/coordinate-mapper.ts ──→ utils/coordinate-utils.ts
-    │
-    ├── nodes/step-converter.ts ──→ types (EngineStep 格式映射)
-    │
-    └── nodes/script-engine-executor.ts ──→ ScriptEngine (外部)
-                                              └── runSteps() → StepExecutor → ADB
+    └── StepExecutor (script-engine/step-executor.ts)
+            └── execute() → adb-executor.ts
 ```
 
 ### 4.1 外部依赖说明
 
 | **外部模块** | **调用方式** | **说明** |
 | :--- | :--- | :--- |
-| `ScriptEngine`（script-engine 模块） | 直接调用 `runSteps()` | 执行 AI 生成的 EngineStep[]，复用其队列/重试/进度推送能力 |
-| `screen-mirror/adb.ts` | 引用设备 serial | 获取当前连接设备的 serial 号和分辨率 |
+| `StepExecutor`（script-engine 模块） | 直接调用 `.execute()` | 执行单个 EngineStep，复用 ADB 调用逻辑 |
+| `adb.ts`（screen-mirror 模块） | 引用设备 serial | 获取当前连接设备的 serial 号 |
 | `config.ts` | 动态导入 | 读取 API Key、超时等配置 |
 | `BrowserWindow` | Electron API | 向渲染进程推送工作流状态 |
 
@@ -160,95 +183,80 @@ graph.ts (StateGraph 编译)
 
 ## 5. 核心架构设计
 
-### 5.1 LangGraph StateGraph 工作流图
+### 5.1 LangGraph StateGraph 工作流图（ai-agent 解析子图）
 
 ```
-                    ┌─────────────────────────────────────────────────────────────┐
-                    │                 AgentState (全局状态)                         │
-                    │  { userInput, screenshot, intent, target,                   │
-                    │    coordinates, engineSteps, result, history, errors }       │
-                    └─────────────────────────────────────────────────────────────┘
+                    ┌──────────────────────────────────────────┐
+                    │      ParseState (LangGraph Annotation)    │
+                    │  { userInput, deviceSerial,              │
+                    │    deviceResolution, intent,             │
+                    │    availableTools, screenshotBase64,     │
+                    │    screenCheckResult, engineSteps }       │
+                    └──────────────────────────────────────────┘
                                          │
-                    ┌────────────────────┼────────────────────────┐
-                    │                    ▼                        │
-                    │         ┌──────────────────┐                │
-                    │         │   intent-parser   │  ← LLM        │
-                    │         │   (意图理解)      │                │
-                    │         └────────┬─────────┘                │
-                    │                  ▼                          │
-                    │         ┌──────────────────┐                │
-                    │   ┌──── │  intent-parser   │  ← keyEvent  │
-                    │   │     │  (直接生成步骤)   │    跳过视觉   │
-                    │   │     └──────────────────┘                │
-                    │   │                                          │
-                    │   │     ┌──────────────────┐                │
-                    │   │     │   screenshot      │  ← ADB        │
-                    │   │     │   (截屏)          │                │
-                    │   │     └────────┬─────────┘                │
-                    │   │              ▼                          │
-                    │   │     ┌──────────────────┐                │
-                    │   │     │  visual-analysis  │  ← VLM        │
-                    │   │     │  (视觉分析)       │                │
-                    │   │     └────────┬─────────┘                │
-                    │   │              ▼                          │
-                    │   │     ┌──────────────────┐                │
-                    │   │     │ coordinate-mapper│  ← 校准        │
-                    │   │     │  (坐标映射)       │                │
-                    │   │     └────────┬─────────┘                │
-                    │   │              ▼                          │
-                    │   └──────┬───────┘                          │
-                    │          ▼                                  │
-                    │  ┌──────────────────┐                       │
-                    │  │  step-converter   │  ← 转换为 EngineStep │
-                    │  │  (步骤转换)       │    调用 ScriptEngine  │
-                    │  └────────┬─────────┘                       │
-                    │           ▼                                 │
-                    │  ┌──────────────────┐                       │
-                    │  │  script-engine    │  ← 复用现有引擎      │
-                    │  │  (引擎执行)       │    队列/重试/进度推送 │
-                    │  └────────┬─────────┘                       │
-                    │           ▼                                 │
-                    │  ┌──────────────────┐                       │
-                    │  │     结束节点      │  ← 返回执行结果       │
-                    │  └──────────────────┘                       │
-                    └─────────────────────────────────────────────┘
+                    ┌────────────────────┼────────────────────┐
+                    │                    ▼                    │
+                    │         ┌──────────────────┐           │
+                    │         │  intent_parser    │← LLM      │
+                    │         │  (意图理解)        │+动态工具  │
+                    │         └────────┬─────────┘           │
+                    │                  │                      │
+                    │         ┌────────┴────────┐             │
+                    │         ▼                  ▼             │
+                    │    [需check_text]    [普通/按键指令]     │
+                    │         │                  │             │
+                    │         ▼                  │             │
+                    │  ┌──────────────┐          │             │
+                    │  │  screenshot   │          │             │
+                    │  │  (截屏)       │          │             │
+                    │  └──────┬───────┘          │             │
+                    │         ▼                  │             │
+                    │  ┌──────────────┐          │             │
+                    │  │  text_check   │← VLM    │             │
+                    │  │  (文本检测)    │         │             │
+                    │  └──────┬───────┘          │             │
+                    │         └──────┬───────────┘             │
+                    │                ▼                         │
+                    │      ┌──────────────────┐                │
+                    │      │  step_converter   │← 映射为步骤   │
+                    │      │  (步骤转换)       │                │
+                    │      └────────┬─────────┘                │
+                    │               ▼                           │
+                    │             END                           │
+                    └──────────────────────────────────────────┘
 ```
 
-### 5.2 状态对象设计（AgentState）
+### 5.2 路由逻辑
 
-```typescript
-interface AgentState {
-  // 输入
-  userInput: string;                   // 用户原始自然语言指令
-  deviceSerial: string;                // 目标设备 serial 号
-  deviceResolution: { width: number; height: number }; // 设备分辨率
-
-  // 中间状态
-  intent: IntentResult | null;         // 意图理解结果
-  screenshotBase64: string | null;     // 屏幕截图（Base64）
-  screenshotPath: string | null;       // 截图本地缓存路径
-  visualResult: VisualResult | null;   // 视觉分析结果
-  calibratedCoords: CalibratedCoord | null; // 校准后坐标
-  engineSteps: EngineStep[];           // 转换后的脚本引擎步骤列表
-
-  // 输出
-  result: ScriptEngineResult | null;   // 脚本引擎执行结果
-  error: AgentError | null;            // 错误信息
-
-  // 上下文
-  history: HistoryEntry[];             // 历史记录（多轮对话上下文）
-}
-```
-
-### 5.3 工作流路由逻辑
-
-| **条件** | **下一节点** | **说明** |
+| **条件** | **路径** | **说明** |
 | :--- | :--- | :--- |
-| 意图识别为 `keyEvent`（如返回/首页/菜单） | **跳过截图+视觉分析** → 直接到步骤转换 | 系统按键不依赖屏幕坐标，由 intent-parser 直接生成 EngineStep |
-| 意图需要坐标（tap/swipe/longPress/input） | **screenshot → visual-analysis → coordinate-mapper** | 完整视觉链路，获取精确坐标 |
-| 步骤转换完成 | **调用 ScriptEngine.runSteps()** | 直接执行，无需确认 |
-| 引擎执行成功 | **返回成功结果** | 包含执行详情 |
-| 任何节点发生错误 | **进入错误处理分支** → 重试/终止 | 根据错误类型决定 |
+| 意图含 `check_text` 动作 | `intent_parser → screenshot → text_check → step_converter` | 需要截图并调用 VLM 检测 |
+| 普通指令（点击/滑动/输入等） | `intent_parser → step_converter` | 直接转换，无需视觉检测 |
+| 纯按键指令（home/back） | `intent_parser → step_converter` | 直接生成 EngineStep |
+
+### 5.3 ai-assistant 执行流程
+
+```
+ai-assistant/execute-ai-workflow(userInput, deviceSerial)
+    │
+    ├── 1. createParseGraph() → 调用子图解析意图
+    │      ├── intent_parser → (需截图?) → screenshot → text_check → step_converter
+    │      └── 返回 { engineSteps, screenCheckResult }
+    │
+    ├── 2. 如果 screenCheckResult 存在且 engineSteps 为空
+    │      └── 直接返回检测结果（纯 check_text 指令）
+    │
+    ├── 3. 遍历 engineSteps，逐条调用 StepExecutor.execute()
+    │      ├── 支持重试（根据配置 maxRetries）
+    │      ├── 步骤间延迟（根据配置 stepInterval）
+    │      └── 记录每步结果
+    │
+    └── 4. 返回 AiWorkflowResult
+           ├── success: boolean
+           ├── engineSteps: EngineStep[]
+           ├── stepResults: StepResult[]
+           └── error?: string
+```
 
 ---
 
@@ -259,29 +267,31 @@ interface AgentState {
 | **属性** | **描述** |
 | :--- | :--- |
 | **节点 ID** | `intent_parser` |
-| **调用模型** | DeepSeek Chat（非 Vision，纯文本） |
-| **输入** | `state.userInput` |
+| **调用模型** | DeepSeek Chat（纯文本） |
+| **输入** | `state.userInput` + `state.availableTools`（动态工具） |
 | **输出** | `state.intent` |
 
 **处理逻辑**：
 1. 加载 `intent-parser.md` 提示词模板，填充用户指令
-2. 调用 DeepSeek Chat API，要求返回结构化 JSON
-3. 解析 JSON，提取 `action`、`target`、`params`
+2. 从 `recorded_clicks` 表加载已录制的点击模板，作为动态工具注入提示词
+3. 调用 DeepSeek Chat API，要求返回结构化 JSON
 4. 解析 JSON，提取 `action`、`target`、`params`
+5. 支持 `keyEvent` 类型直接生成 EngineStep（不经过后续视觉链路）
+6. 支持 `sequence` 类型多步骤复合指令
 
 **返回数据结构**：
 ```typescript
 interface IntentResult {
-  action: 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence';
-  target: string;                  // 目标语义描述，如"微信图标"、"WiFi 开关"
+  action: 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'check_text' | 'sequence';
+  target: string;                    // 目标语义描述
   params?: {
-    direction?: 'up' | 'down' | 'left' | 'right';  // 滑动方向
-    text?: string;                                     // 输入文本
-    key?: 'HOME' | 'BACK' | 'MENU' | 'POWER';         // 按键类型
-    duration?: number;                                 // 长按/滑动时长(ms)
-    steps?: IntentResult[];                            // 复合指令的子步骤
+    direction?: 'up' | 'down' | 'left' | 'right';
+    text?: string;
+    key?: 'HOME' | 'BACK' | 'MENU' | 'POWER';
+    duration?: number;
+    steps?: IntentResult[];          // 复合指令的子步骤
   };
-  confidence: number;              // 置信度 0-1
+  confidence: number;                // 置信度 0-1
 }
 ```
 
@@ -292,107 +302,64 @@ interface IntentResult {
 | **节点 ID** | `screenshot` |
 | **调用方式** | `child_process.exec` 执行 ADB 命令 |
 | **输入** | `state.deviceSerial` |
-| **输出** | `state.screenshotBase64`、`state.screenshotPath` |
+| **输出** | `state.screenshotBase64` |
 
 **处理逻辑**：
 1. 执行 `adb -s <serial> exec-out screencap -p` 获取原始 PNG 数据
 2. 通过 sharp 将图片缩放到最大 1024px（优化 VLM 调用成本）
-3. 保存缩放后的图片到临时目录（用于人工确认展示）
-4. 编码为 Base64（去掉 `data:image/png;base64,` 前缀）
+3. 编码为 Base64
 
-**优化策略**：
-- 缓存最近 3 帧截图，若界面未变化（像素对比）则复用
-- 缩放比例记录到 state 供坐标映射节点反向校准
-
-### 6.3 视觉分析节点（visual-analysis）
+### 6.3 屏幕文本检测节点（text-check）
 
 | **属性** | **描述** |
 | :--- | :--- |
-| **节点 ID** | `visual_analysis` |
-| **调用模型** | DeepSeek Vision（多模态） |
+| **节点 ID** | `text_check` |
+| **调用模型** | 智谱 GLM-4V（多模态视觉模型） |
 | **输入** | `state.screenshotBase64` + `state.intent` |
-| **输出** | `state.visualResult` |
+| **输出** | `state.screenCheckResult` |
 
 **处理逻辑**：
-1. 加载 `visual-analysis.md` 提示词模板，包含目标语义描述和截图
-2. 构造多模态消息：system prompt + user（文本描述 + 图片）
-3. 调用 DeepSeek Vision API，要求返回目标元素的精确坐标和描述
-4. 解析响应，提取坐标信息
+1. 从 intent 中提取待检测的目标文本
+2. 构造多模态请求：将截图 Base64 + 检测目标文本发送至智谱 GLM-4V API
+3. 解析响应，判断文本是否存在
 
-**返回数据结构**：
 ```typescript
-interface VisualResult {
-  elements: Array<{
-    label: string;                // 识别出的元素名称
-    bounds: {                     // 元素边界（基于缩放后图片坐标）
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-    center: { x: number; y: number };  // 元素中心点
-    confidence: number;           // 识别置信度 0-1
-    text?: string;                // 元素上的文本（如有）
-    type?: string;                // UI 控件类型（icon/button/text/switch）
-  }>;
-  rawDescription: string;         // VLM 返回的原始文本描述
+interface ScreenCheckResult {
+  matched: boolean;                  // 是否匹配
+  description: string;               // 检测结果的文本描述
 }
 ```
 
-### 6.4 坐标映射节点（coordinate-mapper）
-
-| **属性** | **描述** |
-| :--- | :--- |
-| **节点 ID** | `coordinate_mapper` |
-| **执行方式** | 纯计算，无外部调用 |
-| **输入** | `state.visualResult` + `state.deviceResolution` + 截图缩放比例 |
-| **输出** | `state.calibratedCoords` |
-
-**处理逻辑**：
-1. 获取截图缩放比例 `scale = originalWidth / resizedWidth`
-2. 将 VLM 返回的坐标乘以缩放比例，映射回原始分辨率
-3. 根据 action 类型计算最终坐标参数
-   - `tap` → 取元素中心点 (center.x * scale, center.y * scale)
-   - `swipe` → 根据方向计算起止坐标
-   - `longPress` → 取元素中心点，duration = 1500ms
-   - `input` → 取元素中心点（先 tap 聚焦，再 input text）
-
-**返回数据结构**：
-```typescript
-interface CalibratedCoord {
-  action: string;
-  points: Array<{ x: number; y: number }>;  // 操作坐标点列表
-  params: Record<string, any>;               // 附加参数（duration/text 等）
-}
-```
-
-### 6.5 步骤转换节点（step-converter）
+### 6.4 步骤转换节点（step-converter）
 
 | **属性** | **描述** |
 | :--- | :--- |
 | **节点 ID** | `step_converter` |
 | **执行方式** | 纯计算，将 AI 解析结果映射为 ScriptEngine 的 EngineStep 格式 |
-| **输入** | `state.intent` + `state.calibratedCoords`（或 keyEvent 参数） |
+| **输入** | `state.intent` + `state.screenCheckResult`（可选） |
 | **输出** | `state.engineSteps` |
 
 **处理逻辑**：
-1. 根据 `intent.action` 和 `calibratedCoords` 组装 `EngineStep[]`
+1. 根据 `intent.action` 组装 `EngineStep[]`
 2. EngineStep 类型与 AI 动作类型的映射关系：
 
 | **AI 动作类型** | **EngineStep.type** | **EngineStep.data** |
 | :--- | :--- | :--- |
 | tap | `click` | `{ x, y }` |
 | swipe | `swipe` | `{ direction, distance?, duration? }` |
-| longPress | `longpress` | `{ x, y, duration }`（duration 转为秒） |
+| longPress | `longpress` | `{ x, y, duration }` |
 | input | `click` + `type` | 先点击输入框聚焦，再输入文本 |
-| keyEvent | `click`（特殊处理） | 由 ScriptEngine 直接执行 `input keyevent` |
+| keyEvent | `click` | `{ keyEvent: 'KEYCODE_...' }` |
+| home | `click` | `{ keyEvent: 'KEYCODE_HOME' }` |
+| openApp | `click` | 通过 UI Automator 查找 app 图标点击 |
+| check_text | — | 不生成 EngineStep，直接返回检测结果 |
 | sequence | 多个 EngineStep | 按顺序组装为步骤数组 |
 
-3. 每个步骤设置合理的 `delay`（默认 500ms，确保 UI 动效完成）
+3. 每个步骤设置合理的 `delay`（默认步骤间隔来自配置）
 
 ```typescript
 interface EngineStep {
-  type: 'click' | 'type' | 'swipe' | 'longpress';
+  type: 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai';
   data: Record<string, any>;
   delay?: number;
 }
@@ -402,56 +369,132 @@ interface EngineStep {
 
 | **AI 意图** | **生成的 EngineStep[]** |
 | :--- | :--- |
-| "点击微信" (tap at 160, 1860) | `[{ type: 'click', data: { x: 160, y: 1860 }, delay: 0.5 }]` |
+| "点击微信" (tap) | `[{ type: 'click', data: { x, y }, delay: 0.5 }]` |
 | "滑动到下一屏" (swipe left) | `[{ type: 'swipe', data: { direction: 'left', distance: 600 }, delay: 0.5 }]` |
-| "长按支付宝" (longPress at 380, 1860) | `[{ type: 'longpress', data: { x: 380, y: 1860, duration: 1.5 }, delay: 0.5 }]` |
-| "返回桌面" (keyEvent HOME) | `[{ type: 'click', data: { keyEvent: 'KEYCODE_HOME' }, delay: 0.5 }]`
-| "打开设置
-d并点击WiFi" (sequence) | `[{ type: 'click', data: { x, y } }, { type: 'click', data: { x, y }, delay: 1.0 }]` |
-
-### 6.6 引擎执行节点（script-engine-executor）
-
-| **属性** | **描述** |
-| :--- | :--- |
-| **节点 ID** | `script_engine_executor` |
-| **调用方式** | 调用 `ScriptEngine.runSteps()` — 新增方法，接收 EngineStep[] 直接执行 |
-| **输入** | `state.engineSteps` + `state.deviceSerial` |
-| **输出** | `state.result` |
-
-**处理逻辑**：
-1. 调用 `ScriptEngine.runSteps(steps, serial)` 执行步骤列表
-2. 该方法内部复用 ScriptEngine 的：
-   - `StepExecutor` — 执行单个步骤的 ADB 命令
-   - `ExecutionQueue` — FIFO 队列管理（与脚本执行共用，避免冲突）
-   - IPC 进度推送 — `engine:stepStart/stepEnd/stepError/complete`
-   - 重试机制 — 基于配置的 `maxRetries`
-   - 步骤间延迟 — 步骤级 delay + 全局 stepInterval
-3. 等待执行完成，返回 `ScriptEngineResult`
-
-```typescript
-interface ScriptEngineResult {
-  success: boolean;
-  totalSteps: number;
-  completedSteps: number;
-  duration: number;
-  error?: string;
-  stepResults: Array<{ index: number; success: boolean; error?: string; duration: number }>;
-}
-```
-
-> **说明**：此节点不直接调用 ADB，而是通过 ScriptEngine 复用已有的执行链路。ScriptEngine 的 `StepExecutor` 内部使用 `adb-executor.ts` 执行实际的 ADB shell 命令。
+| "返回桌面" (keyEvent HOME) | `[{ type: 'click', data: { keyEvent: 'KEYCODE_HOME' }, delay: 0.5 }]` |
+| "检查屏幕是否包含'发送'" (check_text) | `[]`（结果在 screenCheckResult 中返回） |
+| "打开微信，进入陈晓蓓聊天" (sequence) | `[{ type: 'click', data: { ... } }, { type: 'click', data: { ... } }]` |
 
 ---
 
-## 7. 类型定义（types.ts）
+## 7. ai-assistant 编排模块
 
-### 7.1 工作流状态类型
+### 7.1 execute-ai-workflow.ts
+
+| **属性** | **描述** |
+| :--- | :--- |
+| **文件位置** | `src/main/ai-assistant/execute-ai-workflow.ts` |
+| **职责** | 调用 parse graph 解析意图 → 遍历执行 EngineStep[] → 返回结果 |
+
+**核心接口**：
 
 ```typescript
-// === Agent 工作流状态 ===
-export interface AgentState {
-  // 输入
-  userInput: string;
+interface AiWorkflowResult {
+  success: boolean
+  engineSteps: EngineStep[]
+  stepResults?: Array<{ success: boolean; error?: string; duration: number }>
+  error?: string
+  duration: number
+  description?: string      // check_text 的检测描述
+}
+```
+
+**执行流程**：
+
+1. 调用 `createParseGraph().invoke()` 执行解析子图
+2. 返回 `engineSteps` 和 `screenCheckResult`
+3. 若 `screenCheckResult` 存在且 `engineSteps` 为空 → 直接返回检测结果
+4. 否则遍历 `engineSteps`，调用 `StepExecutor.execute()` 逐条执行
+5. 每步失败时按配置重试（`maxRetries`）
+6. 步骤间按配置间隔等待（`stepInterval`）
+7. 返回完整执行结果
+
+### 7.2 index.ts（IPC Handler）
+
+| **属性** | **描述** |
+| :--- | :--- |
+| **文件位置** | `src/main/ai-assistant/index.ts` |
+| **IPC 通道** | `ai-agent:*` 前缀 |
+
+**注册的 IPC 处理器**：
+
+| 通道 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `ai-agent:submit` | handle | 提交AI指令，异步执行工作流 |
+| `ai-agent:cancel` | handle | 取消当前执行 |
+| `ai-agent:get-history` | handle | 获取执行历史 |
+| `ai-agent:status` | send | 工作流状态推送（当前节点+消息） |
+| `ai-agent:result` | send | 执行结果推送 |
+| `ai-agent:error` | send | 错误信息推送 |
+| `ai-agent:history` | send | 历史记录推送 |
+
+**历史记录管理**：
+- 使用内存存储 `historyStore`，最多保留100条
+- 每条记录包含：时间戳、用户输入、意图、截图路径、执行结果、错误信息
+- 支持通过 IPC 查询历史记录
+
+---
+
+## 8. AI 步骤类型
+
+### 8.1 功能概述
+
+AI步骤类型是脚本步骤的扩展，允许用户在脚本中嵌入自然语言描述，执行时由 AI 自动解析为子步骤序列并执行。
+
+### 8.2 数据模型
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `type` | `'ai'` | 固定为 ai |
+| `data.description` | string | 自然语言描述，如"打开微信，点击发送" |
+
+### 8.3 执行流程
+
+1. StepExecutor 遇到 `type === 'ai'` 的步骤
+2. 调用 `createParseGraph()` 创建一个新的解析子图实例
+3. 将 `data.description` 作为 `userInput` 传入
+4. 解析返回 `engineSteps`（子步骤列表）
+5. 遍历子步骤，递归调用 `StepExecutor.execute()` 逐条执行
+6. 若任一子步骤失败，抛出异常，AI 步骤执行失败
+
+```typescript
+// StepExecutor.executeAi() 伪代码
+async function executeAi(data, context) {
+  const parseGraph = createParseGraph()
+  const { engineSteps } = await parseGraph.invoke({ userInput: data.description, ... })
+  for (const step of engineSteps) {
+    await this.execute(step, context)
+  }
+}
+```
+
+### 8.4 使用场景
+
+| 场景 | 示例 |
+| :--- | :--- |
+| 步骤间需要条件判断 | 先点击按钮，AI步骤描述"等待3秒后检查是否出现成功提示" |
+| 复合操作 | 在脚本中嵌入"滑动到底部，点击确认按钮" |
+| 动态导航 | 在循环中动态打开不同应用 |
+
+---
+
+## 9. 模块配置
+
+### 9.1 配置项
+
+所有配置通过 `src/main/config.ts` 统一管理：
+
+| 配置项 | 默认值 | 说明 |
+| :--- | :--- | :--- |
+| `aiAgent.deepseek.apiKey` | — | DeepSeek API Key |
+| `aiAgent.deepseek.model` | `"deepseek-chat"` | DeepSeek 模型名 |
+| `aiAgent.deepseek.baseUrl` | `"https://api.deepseek.com"` | API 端点 |
+| `aiAgent.zhipu.apiKey` | — | 智谱 API Key（用于 check_text 视觉检测） |
+| `aiAgent.zhipu.model` | `"glm-4v"` | 智谱视觉模型名 |
+| `aiAgent.zhipu.baseUrl` | `"https://open.bigmodel.cn/api/paas/v4"` | 智谱 API 端点 |
+| `aiAgent.workflow.appScanPages` | `3` | 打开App时扫描的页面数 |
+| `stepInterval` | `3` | AI 子步骤间的执行间隔（秒） |
+| `maxRetries` | `0` | 步骤失败重试次数 |
   deviceSerial: string;
   deviceResolution: Resolution;
 
