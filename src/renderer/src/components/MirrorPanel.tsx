@@ -145,6 +145,20 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
     setShowFormDialog(true)
   }
 
+  // 录制模式：右键穿透 → 直接执行点击事件到设备
+  const handleOverlayContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const canvas = document.querySelector('canvas')
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const dw = deviceInfo?.deviceWidth || 1
+    const dh = deviceInfo?.deviceHeight || 1
+    if (!rect.width || !rect.height) return
+    const x = Math.round((e.clientX - rect.left) * (dw / rect.width))
+    const y = Math.round((e.clientY - rect.top) * (dh / rect.height))
+    window.electronAPI?.screenMirror?.tap(x, y)
+  }
+
   // 录制模式：Escape 退出
   useEffect(() => {
     if (!isRecording) return
@@ -361,6 +375,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
               height: canvasRect.height,
             }}
             onClick={handleOverlayClick}
+            onContextMenu={handleOverlayContextMenu}
           />
         )}
 
@@ -425,6 +440,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
                 </span>
                 <span className="text-red-500 font-medium animate-pulse">录制模式</span>
+                <span className="text-muted-foreground/50 text-[10px] ml-1">左键录制 · 右键执行</span>
                 <span className="text-muted-foreground/40 mx-1">|</span>
               </div>
             )}
