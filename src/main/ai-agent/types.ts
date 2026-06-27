@@ -17,6 +17,10 @@ export interface AgentState {
   intent: IntentResult | null
   /** 可供 AI 调用的动态工具列表 */
   availableTools: DynamicToolDef[]
+  /** 截图 base64（用于 text_check 等视觉分析） */
+  screenshotBase64: string | null
+  /** 屏幕检测结果（text_check 的返回值） */
+  screenCheckResult: ScreenCheckResult | null
   engineSteps: EngineStep[]
 
   // 输出
@@ -36,13 +40,20 @@ export interface Resolution {
 // 意图理解
 // =============================================================================
 
-export type ActionType = 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence' | 'home' | 'openApp' | 'call_tool'
+export type ActionType = 'tap' | 'swipe' | 'longPress' | 'input' | 'keyEvent' | 'sequence' | 'home' | 'openApp' | 'call_tool' | 'check_text'
 
 export interface IntentResult {
   action: ActionType
   target: string
   params?: IntentParams
   confidence: number
+}
+
+export interface ScreenCheckResult {
+  /** 检测的文字或条件是否满足 */
+  matched: boolean
+  /** 检测描述 */
+  description: string
 }
 
 export interface IntentParams {
@@ -53,6 +64,8 @@ export interface IntentParams {
   steps?: IntentResult[]
   /** 用户显式指定的坐标，格式：{ x, y } */
   explicitCoords?: { x: number; y: number }
+  /** 检测模式：text=检测文字, app=检测App */
+  checkMode?: 'text' | 'app'
 }
 
 // =============================================================================

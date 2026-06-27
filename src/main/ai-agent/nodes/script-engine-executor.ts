@@ -17,7 +17,10 @@ export async function scriptEngineExecutorNode(state: AgentState): Promise<Parti
   const { engineSteps, deviceSerial } = state
 
   if (!engineSteps || engineSteps.length === 0) {
-    throw new Error('没有可执行的步骤')
+    // 没有 engine steps（如纯 check_text 场景），直接返回空结果
+    return {
+      result: { success: true, totalSteps: 0, completedSteps: 0, duration: 0, stepResults: [] },
+    }
   }
 
   console.log('[AiAgent] 开始执行步骤:', JSON.stringify(engineSteps), '设备:', deviceSerial)

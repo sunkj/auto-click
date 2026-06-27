@@ -115,11 +115,12 @@ export function convertToEngineSteps(
     }
 
     case 'openApp': {
-      // 打开 App：转换为 script-engine 的 openApp 步骤类型
+      // 打开 App：先回到桌面，再通过 script-engine 的 openApp 查找并点击
       const appName = intent.target
       if (!appName) {
         throw new Error('[步骤转换] 打开 App 缺少应用名称')
       }
+      steps.push({ type: 'home', data: {}, delay: 0.5 })
       steps.push({
         type: 'openApp',
         data: { appName },

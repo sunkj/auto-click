@@ -112,6 +112,8 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
     deviceResolution: resolution,
     intent: null,
     availableTools: [],
+    screenshotBase64: null,
+    screenCheckResult: null,
     engineSteps: [],
     result: null,
     error: null,
@@ -125,9 +127,6 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
         handleNodeStart: (nodeId: string) => {
           const messages: Record<string, string> = {
             intent_parser: '正在理解指令...',
-            screenshot: '正在截取屏幕...',
-            visual_analysis: '正在分析屏幕内容...',
-            coordinate_mapper: '正在校准坐标...',
             step_converter: '正在转换为执行步骤...',
             script_engine_executor: '正在执行...',
           }
@@ -140,20 +139,47 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
     console.log('[AiAgent] 工作流完成, result:', JSON.stringify(finalState.result).slice(0, 300))
     console.log('[AiAgent] engineSteps:', JSON.stringify(finalState.engineSteps).slice(0, 300))
     console.log('[AiAgent] intent:', JSON.stringify(finalState.intent).slice(0, 200))
+    console.log('[AiAgent] screenCheckResult:', JSON.stringify(finalState.screenCheckResult))
 
-    if (finalState.result) {
-      send(AI_AGENT_CHANNELS.RESULT, finalState.result)
+    // 如果有 engine steps，交给 script_engine_executor 执行
+    if (finalState.engineSteps && finalState.engineSteps.length > 0) {
+      // script_engine_executor 已作为图节点执行，结果在 finalState.result 中
+    }
 
-      // 添加到历史记录
+    // 纯 check_text（无 engine steps）直接返回检测结果
+    if (finalState.screenCheckResult && (!finalState.engineSteps || finalState.engineSteps.length === 0)) {
+      send(AI_AGENT_CHANNELS.RESULT, {
+        success: finalState.screenCheckResult.matched,
+        description: finalState.screenCheckResult.description,
+        type: 'check_text',
+      })
+
       const entry = {
         timestamp: Date.now(),
         userInput,
         intent: finalState.intent,
-        screenshotPath: finalState.screenshotPath,
+        screenshotPath: null,
+        result: null,
+        error: null,
+        screenCheckResult: finalState.screenCheckResult,
+      }
+      historyStore = [entry as any, ...historyStore].slice(0, 100)
+      send(AI_AGENT_CHANNELS.HISTORY, historyStore)
+      return
+    }
+
+    if (finalState.result) {
+      send(AI_AGENT_CHANNELS.RESULT, finalState.result)
+
+      const entry = {
+        timestamp: Date.now(),
+        userInput,
+        intent: finalState.intent,
+        screenshotPath: null,
         result: finalState.result,
         error: null,
       }
-      historyStore = [entry, ...historyStore].slice(0, 100) // 保留最近 100 条
+      historyStore = [entry, ...historyStore].slice(0, 100)
       send(AI_AGENT_CHANNELS.HISTORY, historyStore)
     }
 
@@ -164,7 +190,7 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
         timestamp: Date.now(),
         userInput,
         intent: finalState.intent,
-        screenshotPath: finalState.screenshotPath,
+        screenshotPath: null,
         result: null,
         error: finalState.error,
       }

@@ -9,6 +9,7 @@
 - home：返回桌面/回到首页（不需 target，params 留空）
 - openApp：打开指定 App（target 传 App 名称）
 - call_tool：直接调用已有的快捷工具（target 传工具名称，匹配下方可用工具）
+- check_text：判断屏幕上是否存在指定文字或是否处于某个 App（target 传文字内容，params.checkMode 传 "text" 或 "app"）。可与 tap/swipe 等混合在 sequence 中使用
 - sequence：多步骤复合指令，用于串联多个操作
 
 ===== 单步示例 =====
@@ -21,12 +22,18 @@
 输入："向左滑动"
 输出：{"action":"swipe","target":"","params":{"direction":"left"},"confidence":0.95}
 
+输入："屏幕上有没有微信"
+输出：{"action":"check_text","target":"微信","params":{"checkMode":"text"},"confidence":0.95}
+
+输入："当前是否在设置页面"
+输出：{"action":"check_text","target":"设置","params":{"checkMode":"app"},"confidence":0.95}
+
 ===== 多步骤 sequence 示例 =====
 输入："回到主屏幕，向左滑动2次，打开deepseek"
 输出：{"action":"sequence","target":"","params":{"steps":[{"action":"home","target":"","params":{},"confidence":0.95},{"action":"swipe","target":"","params":{"direction":"left"},"confidence":0.95},{"action":"swipe","target":"","params":{"direction":"left"},"confidence":0.95},{"action":"openApp","target":"deepseek","params":{},"confidence":0.95}]},"confidence":1.0}
 
-输入："返回桌面，向右滑动，打开设置"
-输出：{"action":"sequence","target":"","params":{"steps":[{"action":"home","target":"","params":{},"confidence":0.95},{"action":"swipe","target":"","params":{"direction":"right"},"confidence":0.95},{"action":"openApp","target":"设置","params":{},"confidence":0.95}]},"confidence":1.0}
+输入："打开微信，进入陈晓蓓聊天，判断是否是语音输入模式，如果是切换到文本"
+输出：{"action":"sequence","target":"","params":{"steps":[{"action":"openApp","target":"微信","params":{},"confidence":0.95},{"action":"tap","target":"陈晓蓓","params":{},"confidence":0.95},{"action":"check_text","target":"语音输入","params":{"checkMode":"text"},"confidence":0.95},{"action":"tap","target":"语音输入按钮","params":{},"confidence":0.95}]},"confidence":1.0}
 
 ===== 可用快捷工具 =====
 {formattedTools}
