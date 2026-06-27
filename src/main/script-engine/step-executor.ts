@@ -143,7 +143,7 @@ export class StepExecutor {
       }
       return false
     }
-    const delay = () => new Promise((r) => setTimeout(r, 600))
+    const delay = () => new Promise((r) => setTimeout(r, 1000))
 
     // 1. 从首页开始，先查找当前页
     if (await searchApp()) return
