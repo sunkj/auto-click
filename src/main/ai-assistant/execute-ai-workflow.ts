@@ -39,7 +39,23 @@ export async function executeAiWorkflow(
     engineSteps: [],
   }
 
-  const { engineSteps, screenCheckResult } = await parseGraph.invoke(parseState)
+  const { engineSteps, screenCheckResult, intent } = await parseGraph.invoke(parseState)
+
+  // 打印意图解析结果
+  console.log(`[AiWorkflow] 意图解析完成:`)
+  if (intent) {
+    console.log(`[AiWorkflow]   action: ${intent.action}, target: ${intent.target}`)
+    if (intent.params) console.log(`[AiWorkflow]   params: ${JSON.stringify(intent.params).slice(0, 200)}`)
+    if (intent.action === 'sequence' && intent.params?.steps) {
+      intent.params.steps.forEach((s: any, i: number) => {
+        console.log(`[AiWorkflow]     step ${i + 1}: ${s.action} -> ${s.target}`)
+      })
+    }
+  }
+  if (screenCheckResult) {
+    console.log(`[AiWorkflow]   文本检测: matched=${screenCheckResult.matched}, desc=${screenCheckResult.description}`)
+  }
+  console.log(`[AiWorkflow] 转换结果: ${engineSteps?.length || 0} 个步骤`)
 
   // 纯 check_text（无其他步骤）返回检测结果
   if (screenCheckResult && (!engineSteps || engineSteps.length === 0)) {
@@ -63,11 +79,16 @@ export async function executeAiWorkflow(
   const stepResults: Array<{ success: boolean; error?: string; duration: number }> = []
   const startTime = Date.now()
 
+  console.log(`[AiWorkflow] ▶ 开始执行 ${engineSteps.length} 个步骤`)
+
   for (let i = 0; i < engineSteps.length; i++) {
     ctx.currentIndex = i
+    const stepDesc = `${engineSteps[i].type} ${JSON.stringify(engineSteps[i].data).slice(0, 60)}`
+    console.log(`[AiWorkflow]   ▶ 步骤 ${i + 1}/${engineSteps.length}: ${stepDesc}`)
 
     let result = await stepExecutor.execute(engineSteps[i], ctx as any)
     for (let retry = 0; retry < maxRetries && !result.success; retry++) {
+      console.log(`[AiWorkflow]   ↻ 重试步骤 ${i + 1} (第 ${retry + 1} 次)`)
       result = await stepExecutor.execute(engineSteps[i], ctx as any)
     }
 
@@ -78,6 +99,7 @@ export async function executeAiWorkflow(
     })
 
     if (!result.success) {
+      console.log(`[AiWorkflow] ✘ 步骤 ${i + 1}/${engineSteps.length} 失败: ${result.error}`)
       return {
         success: false,
         engineSteps,
@@ -87,15 +109,19 @@ export async function executeAiWorkflow(
       }
     }
 
+    console.log(`[AiWorkflow]   ✔ 步骤 ${i + 1}/${engineSteps.length} 完成 (${result.duration}ms)`)
+
     if (i < engineSteps.length - 1 && stepInterval > 0) {
       await new Promise((r) => setTimeout(r, stepInterval * 1000))
     }
   }
 
+  const totalDuration = Date.now() - startTime
+  console.log(`[AiWorkflow] ✔ 全部 ${engineSteps.length} 个步骤执行完成 (${totalDuration}ms)`)
   return {
     success: true,
     engineSteps,
     stepResults,
-    duration: Date.now() - startTime,
+    duration: totalDuration,
   }
 }

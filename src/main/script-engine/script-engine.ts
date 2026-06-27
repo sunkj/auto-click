@@ -145,6 +145,7 @@ export class ScriptEngine {
 
         // 发送 step-start
         this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'start' })
+        console.log(`[ScriptEngine] ▶ 步骤 ${ctx.currentIndex + 1}/${totalSteps} (type: ${stepsToRun[i].type})`)
 
         // 执行步骤（带重试）
         let result = await this.stepExecutor.execute(stepsToRun[i], ctx)
@@ -165,6 +166,7 @@ export class ScriptEngine {
 
         completedSteps++
         this.sendProgress({ scriptId, stepIndex: ctx.currentIndex, totalSteps, status: 'end' })
+        console.log(`[ScriptEngine] ✔ 步骤 ${ctx.currentIndex + 1}/${totalSteps} 完成`)
 
         // 步骤间延迟（优先步骤级 delay，其次配置的 stepInterval）
         if (i < totalSteps - 1) {

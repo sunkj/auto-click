@@ -215,6 +215,10 @@ export interface IntentParams {
   key?: 'HOME' | 'BACK' | 'MENU' | 'POWER' | 'APP_SWITCH'
   duration?: number
   steps?: IntentResult[]
+  /** check_text 匹配时要执行的子步骤 */
+  ifMatched?: IntentResult[]
+  /** check_text 不匹配时要执行的子步骤 */
+  ifNotMatched?: IntentResult[]
   explicitCoords?: { x: number; y: number }
   checkMode?: 'text' | 'app'
 }

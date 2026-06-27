@@ -9,6 +9,10 @@ import { createParseGraph } from '../ai-agent/graph'
 export class StepExecutor {
   async execute(step: EngineStep, context: ExecutionContext): Promise<StepResult> {
     const start = Date.now()
+    const name = step.data?.name || step.data?.description || ''
+    const stepLabel = name ? `${step.type} (${name})` : step.type
+    const stepDesc = `${stepLabel} ${JSON.stringify(step.data).slice(0, 80)}`
+    console.log(`[StepExecutor] ▶ 执行步骤 #${context.currentIndex}: ${stepDesc}`)
     try {
       switch (step.type) {
         case 'click':
@@ -35,13 +39,17 @@ export class StepExecutor {
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
       }
-      return { success: true, stepIndex: context.currentIndex, duration: Date.now() - start }
+      const duration = Date.now() - start
+      console.log(`[StepExecutor] ✔ 步骤 #${context.currentIndex} 完成 (${duration}ms): ${stepDesc}`)
+      return { success: true, stepIndex: context.currentIndex, duration }
     } catch (err: any) {
+      const duration = Date.now() - start
+      console.log(`[StepExecutor] ✘ 步骤 #${context.currentIndex} 失败 (${duration}ms): ${err.message}`)
       return {
         success: false,
         stepIndex: context.currentIndex,
         error: err.message || '执行失败',
-        duration: Date.now() - start,
+        duration,
       }
     }
   }
