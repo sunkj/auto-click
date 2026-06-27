@@ -155,20 +155,14 @@ export class StepExecutor {
       if (await searchApp()) return
     }
 
-    // 3. 原路返回首页：右滑 N 次
-    for (let i = 0; i < maxPages; i++) {
-      await swipeRight()
-      await delay()
-    }
-
-    // 4. 右滑查找左侧页面（每滑一次查一次）
+    // 3. 右滑查找左侧页面（每滑一次查一次）
     for (let i = 0; i < maxPages; i++) {
       await swipeRight()
       await delay()
       if (await searchApp()) return
     }
 
-    // 5. 原路返回首页：左滑 N 次
+    // 4. 原路返回首页：左滑 N 次
     for (let i = 0; i < maxPages; i++) {
       await swipeLeft()
       await delay()
