@@ -122,7 +122,7 @@ export function StepPanel() {
   // 打开编辑脚本弹窗
   const handleOpenEditScript = () => {
     if (!currentScript) return
-    setEditScriptName(currentScript.name.replace('.js', ''))
+    setEditScriptName(currentScript.name)
     setEditScriptFolder(currentScript.parentId)
     setEditScriptOpen(true)
   }
@@ -130,7 +130,7 @@ export function StepPanel() {
   // 保存脚本名称 + 目录
   const handleSaveScriptName = async () => {
     if (!currentScript || !editScriptName.trim()) return
-    const name = editScriptName.trim().endsWith('.js') ? editScriptName.trim() : editScriptName.trim() + '.js'
+    const name = editScriptName.trim()
     await useScriptStore.getState().updateScript(currentScript.id, {
       name,
       parentId: editScriptFolder,
@@ -201,7 +201,7 @@ export function StepPanel() {
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate max-w-[140px]">
-              {currentScript.name.replace('.js', '')}
+              {currentScript.name}
             </span>
             <Badge variant="secondary" className="h-4 px-1 text-[10px] font-normal">
               {steps.length} 步
@@ -289,10 +289,17 @@ export function StepPanel() {
                     >
                       {/* Step Number + Icon */}
                       <div className="flex items-center gap-2 min-w-[28px]">
-                        <span className="text-xs font-mono text-muted-foreground w-4 text-right">
-                          {step.index}
-                        </span>
-                        <StepIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        {isExecuting ? (
+                          <svg className="h-3.5 w-3.5 text-yellow-500 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : (
+                          <span className="text-xs font-mono text-muted-foreground w-4 text-right">
+                            {step.index}
+                          </span>
+                        )}
+                        <StepIcon className={cn('h-4 w-4 shrink-0', isExecuting ? 'text-yellow-500' : 'text-muted-foreground')} />
                       </div>
                       {/* Step Content */}
                       <div className="flex-1 min-w-0 mt-[-2px]">

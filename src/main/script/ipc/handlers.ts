@@ -342,11 +342,9 @@ export function registerScriptHandlers(): void {
 
       const steps = await service.getStepsByScriptId(scriptId)
 
-      // 1. 打开保存对话框
-      const saveName = script.name.endsWith('.js') ? script.name : `${script.name}.js`
       const dialogResult = await dialog.showSaveDialog({
         title: '导出脚本',
-        defaultPath: saveName,
+        defaultPath: script.name,
         filters: [{ name: '脚本文件', extensions: ['js'] }],
       })
       if (dialogResult.canceled || !dialogResult.filePath) {

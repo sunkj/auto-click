@@ -160,12 +160,17 @@ export class StepExecutor {
     }
   }
 
-  /** 执行打开App操作 — 逐页扫描找到应用图标并点击 */
+  /** 执行打开App操作 — 先回主屏幕 → 逐页扫描找到应用图标并点击 */
   private async executeOpenApp(data: Record<string, any>, serial: string): Promise<void> {
     const appName = String(data.appName || '')
     if (!appName) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '应用名称不能为空')
     }
+
+    // 先回主屏幕
+    await adbExec.keyEvent(serial, 'KEYCODE_HOME')
+    await new Promise((r) => setTimeout(r, 800))
+
     const { width: dw, height: dh } = await adbExec.getResolution(serial)
     const config = loadConfig()
     const maxPages = config.aiAgent?.workflow?.appScanPages ?? 3

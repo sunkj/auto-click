@@ -39,7 +39,6 @@ export function convertToEngineSteps(
     case 'home': steps.push({ type: 'home', data: {}, delay: 0.5 }); break
     case 'openApp': {
       if (!intent.target) throw new Error('[步骤转换] 打开 App 缺少应用名称')
-      steps.push({ type: 'home', data: {}, delay: 0.5 })
       steps.push({ type: 'openApp', data: { appName: intent.target }, delay: 0.5 })
       break
     }

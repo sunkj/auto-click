@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { showToast } from '@/components/ui/toast'
 
 // =============================================================================
 // 类型定义（兼容原有组件接口）
@@ -142,7 +143,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
 
     // 生成文件名：中文/特殊字符安全处理
     const safeName = name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_')
-    const filePath = `scripts/${safeName}.js`
+    const filePath = `scripts/${safeName}`
 
     try {
       const result = await api.createScript({
@@ -388,14 +389,14 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     const eng = window.electronAPI?.engine
     if (!eng) return
     const serial = useDeviceStore.getState().deviceInfo?.serial
-    if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    if (!serial) { console.error('[ScriptStore] 设备未连接'); showToast('error', '设备未连接，请先连接设备'); return }
     // 执行前先刷新步骤，确保使用最新的排序
     await get().refreshSteps(scriptId)
     set({ executingStepIndex: 0 })
     try {
       await eng.runScript(scriptId, serial)
     } catch (err) {
-      console.error('[ScriptStore] 执行失败:', err)
+      console.error('[ScriptStore] 执行失败:', err); showToast('error', '脚本执行失败')
     } finally {
       set({ executingStepIndex: null })
     }
@@ -406,10 +407,10 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
    */
   runStep: async (scriptId: string, stepIndex: number) => {
     const eng = window.electronAPI?.engine
-    if (!eng) { console.error('[ScriptStore] engine API 不可用'); return }
+    if (!eng) { console.error('[ScriptStore] engine API 不可用'); showToast('error', '引擎 API 不可用'); return }
     const serial = useDeviceStore.getState().deviceInfo?.serial
     console.log('[ScriptStore] runStep:', { scriptId, stepIndex, serial, deviceInfo: useDeviceStore.getState().deviceInfo })
-    if (!serial) { console.error('[ScriptStore] 设备未连接'); return }
+    if (!serial) { console.error('[ScriptStore] 设备未连接'); showToast('error', '设备未连接，请先连接设备'); return }
     // 执行前先刷新步骤，确保步骤索引与 DB 一致
     await get().refreshSteps(scriptId)
     set({ executingStepIndex: stepIndex })
@@ -417,7 +418,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
       const result = await eng.runStep(scriptId, stepIndex, serial)
       console.log('[ScriptStore] 执行结果:', result)
       if (result && !result.success) {
-        console.error('[ScriptStore] 执行失败:', result.error)
+        console.error('[ScriptStore] 执行失败:', result.error); showToast('error', result.error || '步骤执行失败')
       }
     } catch (err) {
       console.error('[ScriptStore] 单步执行异常:', err)
