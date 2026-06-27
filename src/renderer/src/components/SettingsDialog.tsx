@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { Play, Cpu, Key, Wifi } from 'lucide-react'
+import { Play, Key, Wifi, Eye, Brain } from 'lucide-react'
 
 // =============================================================================
 // Tab 定义
 // =============================================================================
 
-type TabId = 'script' | 'ai'
+type TabId = 'script' | 'deepseek' | 'zhipu'
 
 interface TabItem {
   id: TabId
@@ -17,7 +17,8 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { id: 'script', label: '脚本执行', icon: <Play className="h-3.5 w-3.5" /> },
-  { id: 'ai', label: 'AI 设置', icon: <Cpu className="h-3.5 w-3.5" /> },
+  { id: 'deepseek', label: 'DeepSeek', icon: <Brain className="h-3.5 w-3.5" /> },
+  { id: 'zhipu', label: '智谱 GLM-4V', icon: <Eye className="h-3.5 w-3.5" /> },
 ]
 
 // =============================================================================
@@ -30,32 +31,22 @@ interface SettingsDialogProps {
 }
 
 // =============================================================================
-// 组件：AI 设置表单
+// 组件：DeepSeek 设置表单
 // =============================================================================
 
-function AiSettingsForm({ config, onChange }: {
+function DeepSeekSettingsForm({ config, onChange }: {
   config: {
-    // DeepSeek（意图理解）
     apiKey: string
     baseUrl: string
     chatModel: string
     temperature: string
     maxTokens: string
     timeout: string
-    // 智谱（视觉分析）
-    zhipuApiKey: string
-    zhipuBaseUrl: string
-    zhipuVisionModel: string
-    // 截图
-    maxWidth: string
-    quality: string
   }
   onChange: (key: string, value: string) => void
 }) {
   return (
     <div className="flex flex-col gap-4 w-full">
-
-      {/* ==================== DeepSeek（意图理解） ==================== */}
       <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">DeepSeek — 意图理解</div>
 
       <div className="flex flex-col gap-[8px] items-start w-full">
@@ -93,8 +84,63 @@ function AiSettingsForm({ config, onChange }: {
         />
       </div>
 
-      {/* ==================== 智谱（视觉分析） ==================== */}
-      <div className="mt-2 text-xs font-semibold text-muted-foreground tracking-wider uppercase">智谱 GLM-4V — 视觉分析</div>
+      <div className="mt-2 text-xs font-semibold text-muted-foreground tracking-wider uppercase">请求参数</div>
+      <div className="grid grid-cols-3 gap-4 w-full max-w-[400px]">
+        <div className="flex flex-col gap-[8px] items-start">
+          <label className="text-xs font-medium text-foreground tracking-[0.24px]">超时 (ms)</label>
+          <Input
+            type="number"
+            value={config.timeout}
+            onChange={(e) => onChange('timeout', e.target.value)}
+            className="h-10 text-sm bg-background border-input text-foreground font-mono"
+          />
+        </div>
+        <div className="flex flex-col gap-[8px] items-start">
+          <label className="text-xs font-medium text-foreground tracking-[0.24px]">Max Token</label>
+          <Input
+            type="number"
+            value={config.maxTokens}
+            onChange={(e) => onChange('maxTokens', e.target.value)}
+            className="h-10 text-sm bg-background border-input text-foreground font-mono"
+          />
+        </div>
+        <div className="flex flex-col gap-[8px] items-start">
+          <label className="text-xs font-medium text-foreground tracking-[0.24px]">温度</label>
+          <Input
+            type="number"
+            step="0.05"
+            min="0"
+            max="2"
+            value={config.temperature}
+            onChange={(e) => onChange('temperature', e.target.value)}
+            className="h-10 text-sm bg-background border-input text-foreground font-mono"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// 组件：智谱设置表单
+// =============================================================================
+
+function ZhipuSettingsForm({ config, onChange }: {
+  config: {
+    apiKey: string
+    baseUrl: string
+    visionModel: string
+    temperature: string
+    maxTokens: string
+    timeout: string
+    maxWidth: string
+    quality: string
+  }
+  onChange: (key: string, value: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">智谱 GLM-4V — 视觉分析</div>
 
       <div className="flex flex-col gap-[8px] items-start w-full">
         <label className="flex items-center gap-1.5 text-xs font-medium text-foreground tracking-[0.24px]">
@@ -103,8 +149,8 @@ function AiSettingsForm({ config, onChange }: {
         </label>
         <Input
           type="password"
-          value={config.zhipuApiKey}
-          onChange={(e) => onChange('zhipuApiKey', e.target.value)}
+          value={config.apiKey}
+          onChange={(e) => onChange('apiKey', e.target.value)}
           placeholder="sk-xxxxxxxxxxxxxxxx"
           className="h-10 text-sm font-mono bg-background border-input text-foreground w-full max-w-[320px]"
         />
@@ -116,8 +162,8 @@ function AiSettingsForm({ config, onChange }: {
           API 地址
         </label>
         <Input
-          value={config.zhipuBaseUrl}
-          onChange={(e) => onChange('zhipuBaseUrl', e.target.value)}
+          value={config.baseUrl}
+          onChange={(e) => onChange('baseUrl', e.target.value)}
           className="h-10 text-sm bg-background border-input text-foreground w-full max-w-[320px]"
         />
       </div>
@@ -125,15 +171,13 @@ function AiSettingsForm({ config, onChange }: {
       <div className="flex flex-col gap-[8px] items-start max-w-[200px]">
         <label className="text-xs font-medium text-foreground tracking-[0.24px]">视觉模型</label>
         <Input
-          value={config.zhipuVisionModel}
-          onChange={(e) => onChange('zhipuVisionModel', e.target.value)}
+          value={config.visionModel}
+          onChange={(e) => onChange('visionModel', e.target.value)}
           className="h-10 text-sm bg-background border-input text-foreground"
         />
       </div>
 
-      {/* ==================== 共用参数 ==================== */}
-      <div className="mt-2 text-xs font-semibold text-muted-foreground tracking-wider uppercase">共用参数</div>
-
+      <div className="mt-2 text-xs font-semibold text-muted-foreground tracking-wider uppercase">请求参数</div>
       <div className="grid grid-cols-3 gap-4 w-full max-w-[400px]">
         <div className="flex flex-col gap-[8px] items-start">
           <label className="text-xs font-medium text-foreground tracking-[0.24px]">超时 (ms)</label>
@@ -267,18 +311,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [stepInterval, setStepInterval] = useState('0.5')
   const [maxRetries, setMaxRetries] = useState('3')
 
-  // AI 设置
-  const [aiApiKey, setAiApiKey] = useState('')
-  const [aiBaseUrl, setAiBaseUrl] = useState('https://api.deepseek.com')
-  const [aiChatModel, setAiChatModel] = useState('deepseek-chat')
-  const [aiTemperature, setAiTemperature] = useState('0.1')
-  const [aiMaxTokens, setAiMaxTokens] = useState('4096')
-  const [aiTimeout, setAiTimeout] = useState('30000')
-  // 智谱视觉
-  const [aiZhipuApiKey, setAiZhipuApiKey] = useState('')
-  const [aiZhipuBaseUrl, setAiZhipuBaseUrl] = useState('https://open.bigmodel.cn/api/paas/v4')
-  const [aiZhipuVisionModel, setAiZhipuVisionModel] = useState('glm-4v')
-  const [aiZhipuMaxTokens, setAiZhipuMaxTokens] = useState('2048')
+  // DeepSeek 设置
+  const [dsApiKey, setDsApiKey] = useState('')
+  const [dsBaseUrl, setDsBaseUrl] = useState('https://api.deepseek.com')
+  const [dsChatModel, setDsChatModel] = useState('deepseek-chat')
+  const [dsTemperature, setDsTemperature] = useState('0.1')
+  const [dsMaxTokens, setDsMaxTokens] = useState('4096')
+  const [dsTimeout, setDsTimeout] = useState('30000')
+
+  // 智谱设置
+  const [zpApiKey, setZpApiKey] = useState('')
+  const [zpBaseUrl, setZpBaseUrl] = useState('https://open.bigmodel.cn/api/paas/v4')
+  const [zpVisionModel, setZpVisionModel] = useState('glm-4v')
+  const [zpTemperature, setZpTemperature] = useState('0.1')
+  const [zpMaxTokens, setZpMaxTokens] = useState('2048')
+  const [zpTimeout, setZpTimeout] = useState('30000')
+
   // 截图
   const [aiMaxWidth, setAiMaxWidth] = useState('1024')
   const [aiQuality, setAiQuality] = useState('80')
@@ -295,18 +343,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
       const ai = cfg.aiAgent || {}
       const ds = ai.deepseek || {}
-      setAiApiKey(ds.apiKey ?? '')
-      setAiBaseUrl(ds.baseUrl ?? 'https://api.deepseek.com')
-      setAiChatModel(ds.chatModel ?? 'deepseek-chat')
-      setAiTemperature(String(ds.temperature ?? 0.1))
-      setAiMaxTokens(String(ds.maxTokens ?? 4096))
-      setAiTimeout(String(ds.timeout ?? 30000))
+      setDsApiKey(ds.apiKey ?? '')
+      setDsBaseUrl(ds.baseUrl ?? 'https://api.deepseek.com')
+      setDsChatModel(ds.chatModel ?? 'deepseek-chat')
+      setDsTemperature(String(ds.temperature ?? 0.1))
+      setDsMaxTokens(String(ds.maxTokens ?? 4096))
+      setDsTimeout(String(ds.timeout ?? 30000))
 
       const zp = ai.zhipu || {}
-      setAiZhipuApiKey(zp.apiKey ?? '')
-      setAiZhipuBaseUrl(zp.baseUrl ?? 'https://open.bigmodel.cn/api/paas/v4')
-      setAiZhipuVisionModel(zp.visionModel ?? 'glm-4v')
-      setAiZhipuMaxTokens(String(zp.maxTokens ?? 2048))
+      setZpApiKey(zp.apiKey ?? '')
+      setZpBaseUrl(zp.baseUrl ?? 'https://open.bigmodel.cn/api/paas/v4')
+      setZpVisionModel(zp.visionModel ?? 'glm-4v')
+      setZpTemperature(String(zp.temperature ?? 0.1))
+      setZpMaxTokens(String(zp.maxTokens ?? 2048))
+      setZpTimeout(String(zp.timeout ?? 30000))
 
       const sc = ai.screenshot || {}
       setAiMaxWidth(String(sc.maxWidth ?? 1024))
@@ -322,17 +372,25 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
   }
 
-  const handleAiChange = (key: string, value: string) => {
+  const handleDeepSeekChange = (key: string, value: string) => {
     switch (key) {
-      case 'apiKey': setAiApiKey(value); break
-      case 'baseUrl': setAiBaseUrl(value); break
-      case 'chatModel': setAiChatModel(value); break
-      case 'temperature': setAiTemperature(value); break
-      case 'maxTokens': setAiMaxTokens(value); break
-      case 'timeout': setAiTimeout(value); break
-      case 'zhipuApiKey': setAiZhipuApiKey(value); break
-      case 'zhipuBaseUrl': setAiZhipuBaseUrl(value); break
-      case 'zhipuVisionModel': setAiZhipuVisionModel(value); break
+      case 'apiKey': setDsApiKey(value); break
+      case 'baseUrl': setDsBaseUrl(value); break
+      case 'chatModel': setDsChatModel(value); break
+      case 'temperature': setDsTemperature(value); break
+      case 'maxTokens': setDsMaxTokens(value); break
+      case 'timeout': setDsTimeout(value); break
+    }
+  }
+
+  const handleZhipuChange = (key: string, value: string) => {
+    switch (key) {
+      case 'apiKey': setZpApiKey(value); break
+      case 'baseUrl': setZpBaseUrl(value); break
+      case 'visionModel': setZpVisionModel(value); break
+      case 'temperature': setZpTemperature(value); break
+      case 'maxTokens': setZpMaxTokens(value); break
+      case 'timeout': setZpTimeout(value); break
       case 'maxWidth': setAiMaxWidth(value); break
       case 'quality': setAiQuality(value); break
     }
@@ -345,20 +403,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       maxRetries: Number(maxRetries) || 3,
       aiAgent: {
         deepseek: {
-          apiKey: aiApiKey,
-          baseUrl: aiBaseUrl,
-          chatModel: aiChatModel,
-          temperature: Number(aiTemperature) || 0.1,
-          maxTokens: Number(aiMaxTokens) || 4096,
-          timeout: Number(aiTimeout) || 30000,
+          apiKey: dsApiKey,
+          baseUrl: dsBaseUrl,
+          chatModel: dsChatModel,
+          temperature: Number(dsTemperature) || 0.1,
+          maxTokens: Number(dsMaxTokens) || 4096,
+          timeout: Number(dsTimeout) || 30000,
         },
         zhipu: {
-          apiKey: aiZhipuApiKey,
-          baseUrl: aiZhipuBaseUrl,
-          visionModel: aiZhipuVisionModel,
-          temperature: Number(aiTemperature) || 0.1,
-          maxTokens: Number(aiZhipuMaxTokens) || 2048,
-          timeout: Number(aiTimeout) || 30000,
+          apiKey: zpApiKey,
+          baseUrl: zpBaseUrl,
+          visionModel: zpVisionModel,
+          temperature: Number(zpTemperature) || 0.1,
+          maxTokens: Number(zpMaxTokens) || 2048,
+          timeout: Number(zpTimeout) || 30000,
         },
         screenshot: {
           maxWidth: Number(aiMaxWidth) || 1024,
@@ -424,22 +482,32 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 onChange={handleScriptChange}
               />
             )}
-            {activeTab === 'ai' && (
-              <AiSettingsForm
+            {activeTab === 'deepseek' && (
+              <DeepSeekSettingsForm
                 config={{
-                  apiKey: aiApiKey,
-                  baseUrl: aiBaseUrl,
-                  chatModel: aiChatModel,
-                  temperature: aiTemperature,
-                  maxTokens: aiMaxTokens,
-                  timeout: aiTimeout,
-                  zhipuApiKey: aiZhipuApiKey,
-                  zhipuBaseUrl: aiZhipuBaseUrl,
-                  zhipuVisionModel: aiZhipuVisionModel,
+                  apiKey: dsApiKey,
+                  baseUrl: dsBaseUrl,
+                  chatModel: dsChatModel,
+                  temperature: dsTemperature,
+                  maxTokens: dsMaxTokens,
+                  timeout: dsTimeout,
+                }}
+                onChange={handleDeepSeekChange}
+              />
+            )}
+            {activeTab === 'zhipu' && (
+              <ZhipuSettingsForm
+                config={{
+                  apiKey: zpApiKey,
+                  baseUrl: zpBaseUrl,
+                  visionModel: zpVisionModel,
+                  temperature: zpTemperature,
+                  maxTokens: zpMaxTokens,
+                  timeout: zpTimeout,
                   maxWidth: aiMaxWidth,
                   quality: aiQuality,
                 }}
-                onChange={handleAiChange}
+                onChange={handleZhipuChange}
               />
             )}
           </main>

@@ -14,6 +14,7 @@ export const SMC = {
   CONNECTED: 'scrcpy:connected',
   DISCONNECTED: 'scrcpy:disconnected',
   ERROR: 'scrcpy:error',
+  SCREENSHOT: 'scrcpy:screenshot',
 } as const
 
 export type ScrcpyChannel = (typeof SMC)[keyof typeof SMC]

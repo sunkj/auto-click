@@ -3,6 +3,7 @@ import { ScriptPanel } from '@/components/ScriptPanel'
 import { StepPanel } from '@/components/StepPanel'
 import { MirrorPanel } from '@/components/MirrorPanel'
 import { AiFloatingAssistant } from '@/components/AiFloatingAssistant'
+import { ToastContainer } from '@/components/ui/toast'
 import { useScriptStore } from '@/stores/scriptStore'
 
 function App() {
@@ -31,6 +32,8 @@ function App() {
       </div>
       {/* AI 智能助手 - 左下角浮动 */}
       <AiFloatingAssistant />
+      {/* Toast 通知 - 右上角 */}
+      <ToastContainer />
     </div>
   )
 }

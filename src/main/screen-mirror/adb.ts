@@ -100,6 +100,18 @@ async function getDeviceResolution(serial: string): Promise<{ width: number; hei
   return { width: 0, height: 0 }
 }
 
+/**
+ * 截取设备屏幕并保存到本地路径
+ * 先保存到设备临时文件，再 pull 到本地（比 exec-out 管道更可靠）
+ */
+async function screenshot(serial: string, savePath: string): Promise<string> {
+  const tmpFile = '/sdcard/autoclick_temp_screenshot.png'
+  await adbShell(serial, `screencap -p ${tmpFile}`)
+  await adbExec(`-s ${serial} pull ${tmpFile} "${savePath}"`)
+  await adbShell(serial, `rm -f ${tmpFile}`)
+  return savePath
+}
+
 export const adb = {
   exec: adbExec,
   shell: adbShell,
@@ -108,4 +120,5 @@ export const adb = {
   },
   getDeviceModel,
   getDeviceResolution,
+  screenshot,
 }

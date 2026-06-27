@@ -147,4 +147,27 @@ export function registerScrcpyHandlers(): void {
       return { success: false, error: String(error) }
     }
   })
+
+  // =========================================================================
+  // 截图
+  // =========================================================================
+
+  ipcMain.handle(SMC.SCREENSHOT, async () => {
+    try {
+      const serial = ctrl.getSerial()
+      if (!serial) throw new Error('未连接设备')
+
+      const { app } = require('electron')
+      const path = require('path')
+      const desktopPath = app.getPath('desktop')
+      const timestamp = Date.now()
+      const filename = `AutoClick_截图_${timestamp}.png`
+      const savePath = path.join(desktopPath, filename)
+
+      await adb.screenshot(serial, savePath)
+      return { success: true, data: { path: savePath } }
+    } catch (error) {
+      return { success: false, error: String(error) }
+    }
+  })
 }

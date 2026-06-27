@@ -125,6 +125,7 @@ const SMC = {
   CONNECTED: 'scrcpy:connected',
   DISCONNECTED: 'scrcpy:disconnected',
   ERROR: 'scrcpy:error',
+  SCREENSHOT: 'scrcpy:screenshot',
 } as const
 
 const screenMirrorAPI = {
@@ -140,6 +141,7 @@ const screenMirrorAPI = {
   back: () => ipcRenderer.invoke(SMC.BACK),
   home: () => ipcRenderer.invoke(SMC.HOME),
   text: (t: string) => ipcRenderer.invoke(SMC.TEXT, t),
+  screenshot: () => ipcRenderer.invoke(SMC.SCREENSHOT),
 
   // 帧事件监听
   onFrame: (callback: (event: unknown) => void) => {

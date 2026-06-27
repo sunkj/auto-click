@@ -19,8 +19,10 @@ import {
   Square,
   ArrowLeft,
   Home,
+  Camera,
 } from 'lucide-react'
 import { ScreenCanvas } from '@/components/ScreenCanvas'
+import { showToast } from '@/components/ui/toast'
 
 interface MirrorPanelProps {
   onTogglePanels?: () => void
@@ -40,6 +42,27 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
   const [showListDialog, setShowListDialog] = useState(false)
   const [canvasRect, setCanvasRect] = useState({ top: 0, left: 0, width: 0, height: 0 })
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // 截图状态
+  const [isScreenshotting, setIsScreenshotting] = useState(false)
+
+  const handleScreenshot = async () => {
+    if (isScreenshotting || !isConnected) return
+    setIsScreenshotting(true)
+    try {
+      const result = await window.electronAPI?.screenMirror?.screenshot()
+      if (result?.success) {
+        showToast('success', '截图已保存到桌面')
+      } else {
+        showToast('error', result?.error || '截图失败')
+      }
+    } catch (e) {
+      showToast('error', '截图异常，请重试')
+      console.error('截图失败', e)
+    } finally {
+      setIsScreenshotting(false)
+    }
+  }
 
   const isConnected = status === 'connected'
   const isLoading = status === 'connecting'
@@ -341,14 +364,30 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
           />
         )}
 
-        {/* 录制 & 查看按钮 - 浮动在投屏区域右上角 */}
+        {/* 录制 & 查看 & 截图按钮 - 浮动在投屏区域右上角 */}
         {!isMinimized && (
-          <div className="absolute top-5 left-5 z-40">
+          <div className="absolute top-5 left-5 z-40 flex flex-col gap-1.5">
             <RecordActionButtons
               isRecording={isRecording}
               onToggleRecording={() => setIsRecording((v) => !v)}
               onOpenList={() => setShowListDialog(true)}
             />
+            <div className="w-full border-t border-border/40 my-0.5" />
+            <button
+              onClick={handleScreenshot}
+              disabled={!isConnected || isScreenshotting}
+              className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="截图保存到桌面"
+            >
+              {isScreenshotting ? (
+                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
+            </button>
           </div>
         )}
       </div>

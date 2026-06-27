@@ -89,6 +89,7 @@ interface ElectronScreenMirrorAPI {
   back: () => Promise<IpcResult<void>>
   home: () => Promise<IpcResult<void>>
   text: (t: string) => Promise<IpcResult<void>>
+  screenshot: () => Promise<IpcResult<{ path: string }>>
   onFrame: (callback: (event: FramePayload) => void) => () => void
   onConnected: (callback: (status: string) => void) => () => void
   onDisconnected: (callback: () => void) => () => void
