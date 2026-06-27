@@ -124,15 +124,11 @@ export class StepExecutor {
     if (!appName) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '应用名称不能为空')
     }
-    // 先回主屏幕
-    await adbExec.keyEvent(serial, 'KEYCODE_HOME')
-    // 等待主屏幕渲染
-    await new Promise((r) => setTimeout(r, 800))
     // 通过 UI Automator 查找应用图标
     const { width: dw, height: dh } = await adbExec.getResolution(serial)
     const result = await findElementByUiAutomator(serial, appName, dw, dh)
     if (!result.elements || result.elements.length === 0) {
-      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未在主屏幕找到应用 "${appName}"`)
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未找到应用 "${appName}"`)
     }
     // 点击第一个匹配元素（按面积排序，最小的最精确）
     const target = result.elements[0]

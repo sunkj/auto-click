@@ -13,13 +13,11 @@ import type { EngineStep } from '../../script-engine/types'
  * @param intent AI 解析的意图
  * @param calibratedCoords 校准后的坐标（用于 tap / swipe / longPress）
  * @param availableTools 可用的动态工具列表（用于 call_tool 查找）
- * @param needsHomeFirst openApp 时是否需要先回桌面
  */
 export function convertToEngineSteps(
   intent: IntentResult,
   calibratedCoords: CalibratedCoord | null,
   availableTools?: DynamicToolDef[],
-  needsHomeFirst?: boolean,
 ): EngineStep[] {
   const { action, params } = intent
   const steps: EngineStep[] = []
@@ -117,18 +115,11 @@ export function convertToEngineSteps(
     }
 
     case 'openApp': {
-      // 打开 App：转换为 script-engine 的 openApp 步骤类型，
-      // 引擎内部会先回桌面 → UI Automator 找图标 → 点击
+      // 打开 App：转换为 script-engine 的 openApp 步骤类型
       const appName = intent.target
       if (!appName) {
         throw new Error('[步骤转换] 打开 App 缺少应用名称')
       }
-
-      // 如果屏幕预检发现当前在 App 内，先插入一个 home 步骤回到桌面
-      if (needsHomeFirst) {
-        steps.push({ type: 'home', data: {}, delay: 0.5 })
-      }
-
       steps.push({
         type: 'openApp',
         data: { appName },

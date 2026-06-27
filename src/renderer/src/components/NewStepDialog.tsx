@@ -268,7 +268,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               />
             </div>
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
-              💡 提示：需要把应用放到主屏幕，不支持在主屏幕之外（如第二屏、第三屏）
+              💡 提示：只支持打开当前可见屏幕之内的应用，如果应用不再当前屏幕内，请先滑动到对应的屏幕
             </div>
           </div>
         )
