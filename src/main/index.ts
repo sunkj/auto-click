@@ -3,7 +3,7 @@ import path from 'path'
 import { registerScriptHandlers } from './script'
 import { registerScrcpyHandlers } from './screen-mirror'
 import { registerEngineHandlers } from './script-engine'
-import { registerAiAgentHandlers } from './ai-agent'
+import { registerAiAgentHandlers } from './ai-assistant'
 import { registerRecordedClickHandlers } from './record-script'
 import { loadConfig, saveConfig } from './config'
 

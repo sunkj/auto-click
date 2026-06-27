@@ -13,9 +13,10 @@ import {
   Database,
   House,
   AppWindow,
+  Brain,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai'
 
 interface NewStepDialogProps {
   open: boolean
@@ -30,6 +31,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   longpress: { label: '长按', icon: Pointer, color: 'text-red-500' },
   home: { label: '回主屏幕', icon: House, color: 'text-orange-500' },
   openApp: { label: '打开App', icon: AppWindow, color: 'text-sky-500' },
+  ai: { label: 'AI', icon: Brain, color: 'text-cyan-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -41,6 +43,7 @@ function paramsFromStep(step: Step): Record<string, string> {
   if (!p.x) p.x = ''
   if (!p.y) p.y = ''
   if (!p.duration) p.duration = ''
+  if (!p.aiPrompt) p.aiPrompt = ''
   return p
 }
 
@@ -51,6 +54,7 @@ const typeLabels: Record<StepType, string> = {
   longpress: '长按',
   home: '回主屏幕',
   openApp: '打开App',
+  ai: 'AI',
 }
 
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
@@ -68,6 +72,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       duration: '',
       pressDuration: '1.0',
       appName: '',
+      aiPrompt: '',
     }
   )
 
@@ -80,7 +85,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     } else {
       setStepType('click')
       setStepName('点击')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '' })
     }
   }, [editStep])
 
@@ -127,7 +132,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai']
 
   // 从录制记录选择
   const [showRecordSelector, setShowRecordSelector] = useState(false)
@@ -269,6 +274,24 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
             </div>
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
               💡 提示：只支持打开当前可见屏幕之内的应用，如果应用不再当前屏幕内，请先滑动到对应的屏幕
+            </div>
+          </div>
+        )
+      case 'ai':
+        return (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">执行描述</label>
+              <textarea
+                placeholder="描述 AI 需要执行的操作流程&#10;例如：&#10;1. 打开微信&#10;2. 进入某某聊天窗口&#10;3. 输入内容并发送&#10;4. 返回聊天列表"
+                value={params.description || ''}
+                onChange={(e) => handleParamChange('description', e.target.value)}
+                rows={6}
+                className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2.5 text-xs text-blue-700 leading-relaxed">
+              💡 需要支持更多的指令，请先<strong>录制添加更多的指令</strong>
             </div>
           </div>
         )

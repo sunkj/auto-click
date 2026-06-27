@@ -142,7 +142,7 @@ export function AiFloatingAssistant() {
               onKeyDown={handleKeyDown}
               placeholder="输入指令，如：点击微信"
               disabled={isRunning}
-              rows={2}
+              rows={6}
               className={cn(
                 'flex-1 min-h-[52px] resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-xs outline-none ring-offset-background',
                 'placeholder:text-muted-foreground/50',

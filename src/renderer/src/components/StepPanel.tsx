@@ -21,6 +21,7 @@ import {
   GripVertical,
   CircleDot,
   AppWindow,
+  Brain,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -35,6 +36,7 @@ const stepLabels: Record<string, string> = {
   script: '脚本',
   home: '回主屏幕',
   openApp: '打开App',
+  ai: 'AI',
 }
 
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -45,6 +47,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   script: FileCode,
   home: House,
   openApp: AppWindow,
+  ai: Brain,
 }
 
 export function StepPanel() {
