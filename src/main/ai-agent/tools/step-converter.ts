@@ -50,6 +50,24 @@ export function convertToEngineSteps(
       else steps.push({ type: 'click', data: { keyEvent: keyMap[key] || 'KEYCODE_HOME', ...desc(`按键 ${key}`) }, delay: 0.5 })
       break
     }
+    case 'check_text': {
+      // check_text 不在解析阶段执行，由 execute-ai-workflow 在运行时处理
+      // 创建一个标记步骤，包含 ifMatched/ifNotMatched 分支信息
+      steps.push({
+        type: 'click',
+        data: {
+          _checkpoint: true,
+          checkTarget: target,
+          checkMode: params?.checkMode || 'text',
+          ifMatched: params?.ifMatched ? JSON.parse(JSON.stringify(params.ifMatched)) : undefined,
+          ifNotMatched: params?.ifNotMatched ? JSON.parse(JSON.stringify(params.ifNotMatched)) : undefined,
+          _availableTools: availableTools,
+          ...desc(`检测: ${target}`),
+        },
+        delay: 0,
+      })
+      break
+    }
     case 'sequence': {
       if (params?.steps) for (const s of params.steps) steps.push(...convertToEngineSteps(s, calibratedCoords, availableTools))
       break

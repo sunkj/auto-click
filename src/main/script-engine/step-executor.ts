@@ -1,9 +1,13 @@
 import { adbExec } from './adb-executor'
 import type { EngineStep, ExecutionContext, StepResult } from './types'
+import type { IntentResult } from '../common/types'
 import { ScriptEngineError, ErrorCode } from './errors'
 import { findElementByUiAutomator } from './uiautomator-service'
 import { loadConfig } from '../config'
 import { createParseGraph } from '../ai-agent/graph'
+import { captureScreenshot } from '../ai-agent/tools/screenshot'
+import { checkScreenText } from '../ai-agent/tools/text-check'
+import { convertToEngineSteps } from '../ai-agent/tools/step-converter'
 
 /** 步骤执行器 — 通过 adb shell 直接执行命令，不依赖 screen-mirror */
 export class StepExecutor {
@@ -131,7 +135,7 @@ export class StepExecutor {
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
   }
 
-  /** 执行 AI 步骤 — 通过 ai-agent 子图解析 → 转为 engine steps → 逐条执行 */
+  /** 执行 AI 步骤 — 通过 ai-agent 子图解析 → 转为 engine steps → 逐条执行（含运行时check_text检查点） */
   private async executeAi(data: Record<string, any>, context: ExecutionContext): Promise<void> {
     const description = String(data.description || '')
     if (!description) {
@@ -145,8 +149,6 @@ export class StepExecutor {
       deviceResolution: { width: 1080, height: 2400 },
       intent: null,
       availableTools: [],
-      screenshotBase64: null,
-      screenCheckResult: null,
       engineSteps: [],
     }
 
@@ -156,13 +158,55 @@ export class StepExecutor {
 
     const config = loadConfig()
     const stepInterval = config.stepInterval || 3
+    const mutableSteps = [...subSteps]
 
-    for (let i = 0; i < subSteps.length; i++) {
-      const result = await this.execute(subSteps[i], context)
+    console.log(`[StepExecutor] AI 步骤展开: ${mutableSteps.length} 个子步骤`)
+
+    let i = 0
+    while (i < mutableSteps.length) {
+      const step = mutableSteps[i]
+      context.currentIndex = i
+
+      // ── check_text 检查点：运行时截图 + VLM 判断 ──
+      if (step.data?._checkpoint) {
+        const target = step.data.checkTarget
+        const checkMode = step.data.checkMode || 'text'
+        const ifMatched = step.data.ifMatched as IntentResult[] | undefined
+        const ifNotMatched = step.data.ifNotMatched as IntentResult[] | undefined
+        console.log(`[StepExecutor]   ▶ 检查点: 检测 "${target}" (ifMatched=${ifMatched?.length ?? 0}, ifNotMatched=${ifNotMatched?.length ?? 0})`)
+
+        // 实时截图
+        const screenshot = await captureScreenshot(context.serial)
+        // 调用 VLM
+        const screenCheckResult = await checkScreenText(screenshot.base64, target, checkMode)
+        console.log(`[StepExecutor]     检测结果: matched=${screenCheckResult.matched}`)
+
+        // 选择分支注入
+        const branchSteps: EngineStep[] = []
+        const tools = step.data._availableTools as any[] | undefined
+        if (screenCheckResult.matched && ifMatched) {
+          console.log(`[StepExecutor]     ↪ 展开 ifMatched 分支`)
+          for (const sub of ifMatched) branchSteps.push(...convertToEngineSteps(sub, null, tools))
+        } else if (!screenCheckResult.matched && ifNotMatched) {
+          console.log(`[StepExecutor]     ↪ 展开 ifNotMatched 分支`)
+          for (const sub of ifNotMatched) branchSteps.push(...convertToEngineSteps(sub, null, tools))
+        }
+
+        if (branchSteps.length > 0) {
+          mutableSteps.splice(i + 1, 0, ...branchSteps)
+        }
+        mutableSteps.splice(i, 1) // 移除检查点
+        continue
+      }
+
+      // ── 正常执行 ──
+      const result = await this.execute(step, context)
       if (!result.success) {
         throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `AI 子步骤失败: ${result.error}`)
       }
-      if (i < subSteps.length - 1 && stepInterval > 0) {
+      i++
+
+      if (i < mutableSteps.length && stepInterval > 0 && !mutableSteps[i]?.data?._checkpoint) {
         await new Promise((r) => setTimeout(r, stepInterval * 1000))
       }
     }
