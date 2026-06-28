@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { version } from '../../../../package.json'
 import { useScriptStore, Script } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Trash2,
   MousePointerClick,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 function ScriptFolder({ folder, onDelete }: { folder: Script; onDelete: (script: Script) => void }) {
@@ -33,7 +35,7 @@ function ScriptFolder({ folder, onDelete }: { folder: Script; onDelete: (script:
     <div>
       <button
         onClick={() => toggleFolder(folder.id)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
+        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 active:scale-[0.98] transition-all duration-150 rounded-md"
       >
         {isExpanded ? (
           <ChevronDown className="h-3 w-3 shrink-0" />
@@ -68,7 +70,7 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
   return (
     <Card
       className={cn(
-        'cursor-pointer border-0 transition-all duration-150 group',
+        'cursor-pointer border-0 transition-all duration-150 active:scale-[0.98] group',
         isSelected
           ? 'border-primary/50 bg-accent shadow-sm'
           : 'border-transparent bg-transparent hover:bg-accent/50'
@@ -91,7 +93,7 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
         {/* Delete icon — shown only when selected */}
         {isSelected && (
           <button
-            className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:scale-[0.9] transition-all duration-150"
             onClick={(e) => {
               e.stopPropagation()
               onDelete(script)
@@ -110,6 +112,13 @@ export function ScriptPanel() {
   const { scripts, loading, currentScriptId } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  // 主题切换
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark)
+  }, [isDark])
+
   const [deleteTarget, setDeleteTarget] = useState<Script | null>(null)
 
   const folders = scripts.filter((s) => s.type === 'folder')
@@ -204,28 +213,33 @@ export function ScriptPanel() {
           <Button
             variant="ghost"
             size="sm"
-            className="flex-1 h-7 text-xs gap-1"
+            className="flex-1 h-7 text-xs gap-1 hover:bg-muted/30"
             onClick={handleImport}
           >
-            <Download className="h-3 w-3" />
+            <Download className="h-3.5 w-3.5" />
             导入
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="flex-1 h-7 text-xs gap-1"
+            className="flex-1 h-7 text-xs gap-1 hover:bg-muted/30"
             onClick={handleExport}
             disabled={!currentScriptId}
           >
-            <Upload className="h-3 w-3" />
+            <Upload className="h-3.5 w-3.5" />
             导出
           </Button>
         </div>
         <div className="flex h-[40px] items-center justify-between px-2 py-1 border-t">
           <span className="text-[10px] text-muted-foreground">v{version}</span>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSettingsOpen(true)}>
-            <Settings className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsDark((v) => !v)} title={isDark ? '切换亮色主题' : '切换深色主题'}>
+              {isDark ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-3 w-3" />
+            </Button>
+          </div>
           <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
         </div>
       </div>

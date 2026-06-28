@@ -344,7 +344,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             <button
               onClick={() => window.electronAPI?.screenMirror?.swipeUp()}
               disabled={!isConnected}
-              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
               title="向上滑动"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -354,7 +354,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             <button
               onClick={() => window.electronAPI?.screenMirror?.swipeDown()}
               disabled={!isConnected}
-              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-full border bg-background/90 shadow-sm text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
               title="向下滑动"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -391,7 +391,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             <button
               onClick={handleScreenshot}
               disabled={!isConnected || isScreenshotting}
-              className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
               title="截图保存到桌面"
             >
               {isScreenshotting ? (

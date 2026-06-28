@@ -271,8 +271,8 @@ export function StepPanel() {
                     onDrop={(e) => handleDrop(e, _idx)}
                     onDragEnd={handleDragEnd}
                     className={cn(
-                      'group flex items-start gap-1 px-2 py-3 transition-colors',
-                      isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500' : '',
+                      'group flex items-start gap-1 px-2 py-3 transition-all duration-150 active:scale-[0.99]',
+                      isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500 active:scale-100' : '',
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50',
                       draggedIndex.current === _idx ? 'opacity-50' : ''
                     )}

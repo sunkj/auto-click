@@ -483,7 +483,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'flex items-center gap-3 w-full pl-[18px] pr-4 py-2 text-xs font-medium tracking-[0.24px] transition-all border-l-2 text-left',
+                    'flex items-center gap-3 w-full pl-[18px] pr-4 py-2 text-xs font-medium tracking-[0.24px] transition-all duration-150 border-l-2 text-left active:scale-[0.99]',
                     isActive
                       ? 'border-l-primary bg-primary/10 text-primary'
                       : 'border-l-transparent text-muted-foreground hover:text-foreground hover:bg-accent/50'
@@ -542,7 +542,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         <div className="bg-muted/30 border-t border-border flex items-center justify-end gap-3 px-4 py-[17px]">
           <button
             onClick={() => onOpenChange(false)}
-            className="px-[25px] py-[9px] text-xs font-medium text-muted-foreground tracking-[0.24px] border border-border rounded-md hover:bg-accent transition-colors"
+            className="px-[25px] py-[9px] text-xs font-medium text-muted-foreground tracking-[0.24px] border border-border rounded-md hover:bg-accent active:scale-[0.98] transition-all duration-150"
           >
             取消
           </button>

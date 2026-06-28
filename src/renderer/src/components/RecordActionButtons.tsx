@@ -24,7 +24,7 @@ export function RecordActionButtons({
       <button
         onClick={onToggleRecording}
         className={cn(
-          'flex h-7 w-7 items-center justify-center rounded-full shadow-md border transition-colors',
+          'flex h-7 w-7 items-center justify-center rounded-full shadow-md border transition-all duration-150',
           isRecording
             ? 'text-red-500 bg-red-500/10 border-red-500/30 animate-pulse'
             : 'bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border'
@@ -35,7 +35,7 @@ export function RecordActionButtons({
       </button>
       <button
         onClick={onOpenList}
-        className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border transition-colors"
+        className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border transition-all duration-150"
         title="查看录制的点击事件"
       >
         <List className="h-3.5 w-3.5" />

@@ -317,10 +317,10 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               key={type}
               onClick={() => handleTypeChange(type)}
               className={cn(
-                'flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-colors',
+                'flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-all duration-150 active:scale-[0.97]',
                 isActive
                   ? 'border-primary bg-primary/10'
-                  : 'border-border hover:bg-accent'
+                  : 'border-border hover:bg-accent hover:border-muted-foreground/20'
               )}
             >
               <Icon className={cn('h-5 w-5', isActive ? meta.color : 'text-muted-foreground')} />
