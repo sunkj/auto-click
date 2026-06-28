@@ -96,7 +96,15 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
     pushStatus('intent_parser', '正在理解指令...')
     console.log('[AiAgent] 开始工作流:', userInput, 'serial:', deviceSerial)
 
-    const result = await executeAiWorkflow(userInput, deviceSerial)
+    const result = await executeAiWorkflow(userInput, deviceSerial, (desc, idx, total) => {
+      send(AI_AGENT_CHANNELS.STATUS, {
+        status: 'running',
+        node: 'step_executor',
+        message: desc,
+        stepIndex: idx,
+        totalSteps: total,
+      } as StatusPayload)
+    })
 
     console.log('[AiAgent] 工作流完成:', JSON.stringify(result).slice(0, 300))
 

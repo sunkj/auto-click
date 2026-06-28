@@ -18,6 +18,9 @@ export interface AiWorkflowResult {
   description?: string
 }
 
+/** 步骤进度回调 */
+export type StepProgressCallback = (description: string, index: number, total: number) => void
+
 /**
  * 执行 AI 工作流
  *
@@ -28,6 +31,7 @@ export interface AiWorkflowResult {
 export async function executeAiWorkflow(
   userInput: string,
   deviceSerial: string,
+  onStep?: StepProgressCallback,
 ): Promise<AiWorkflowResult> {
   const parseGraph = createParseGraph()
 
@@ -81,6 +85,7 @@ export async function executeAiWorkflow(
       const checkMode = step.data.checkMode || 'text'
       const ifMatched = step.data.ifMatched as IntentResult[] | undefined
       const ifNotMatched = step.data.ifNotMatched as IntentResult[] | undefined
+      onStep?.(`📷 检测: ${target}`, i + 1, mutableSteps.length)
       console.log(`[AiWorkflow]   ▶ 检查点 ${i + 1}/${mutableSteps.length}: 检测 "${target}"`)
       console.log(`[AiWorkflow]     ifMatched=${ifMatched?.length ?? 0} 步, ifNotMatched=${ifNotMatched?.length ?? 0} 步`)
 
@@ -125,6 +130,8 @@ export async function executeAiWorkflow(
     }
 
     // ── 正常步骤执行 ──
+    const stepLabel = step.data?.description || `${step.type} ${JSON.stringify(step.data).slice(0, 50)}`
+    onStep?.(stepLabel, i + 1, mutableSteps.length)
     const stepDesc = `${step.type} ${JSON.stringify(step.data).slice(0, 60)}`
     console.log(`[AiWorkflow]   ▶ 步骤 ${i + 1}/${mutableSteps.length}: ${stepDesc}`)
 

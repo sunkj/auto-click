@@ -316,6 +316,8 @@ export interface StatusPayload {
   status: WorkflowStatus
   node: string
   message: string
+  stepIndex?: number
+  totalSteps?: number
 }
 
 // =============================================================================
