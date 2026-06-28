@@ -388,23 +388,28 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
               onOpenList={() => setShowListDialog(true)}
             />
             <div className="w-full border-t border-border/40 my-0.5" />
-            <button
-              onClick={handleScreenshot}
-              disabled={!isConnected || isScreenshotting}
-              className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
-              title="截图保存到桌面"
-            >
-              {isScreenshotting ? (
-                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <Camera className="h-3.5 w-3.5" />
-              )}
-            </button>
+            <div className="relative group">
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-md text-[10px] text-foreground/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                截图
+              </div>
+              <button
+                onClick={handleScreenshot}
+                disabled={!isConnected || isScreenshotting}
+                className="flex h-7 w-7 items-center justify-center rounded-full shadow-md border bg-background/90 text-muted-foreground hover:text-foreground hover:bg-background border-border disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
+              >
+                {isScreenshotting ? (
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
           </div>
         )}
+
       </div>
 
       {/* 录制保存表单弹窗 */}

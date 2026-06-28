@@ -147,7 +147,11 @@ export function AiFloatingAssistant() {
       )}
 
       {/* 浮动按钮（带彩色环绕动画） */}
-      <div className="absolute bottom-[92px] left-9 z-[55]">
+      <div className="absolute bottom-[92px] left-9 z-[55] group">
+        {/* hover 提示 */}
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-md text-[10px] text-foreground/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          AI 智能操控
+        </div>
         {/* 彩色旋转光环 - 仅在执行时显示 */}
         {isRunning && (
           <>
@@ -177,7 +181,6 @@ export function AiFloatingAssistant() {
               ? 'bg-background text-foreground border-border scale-110'
               : 'bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30 border-border'
           )}
-          title="AI 智能操控"
         >
           <Sparkles className={cn(
             'h-4 w-4 transition-all duration-300',
