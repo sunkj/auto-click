@@ -19,6 +19,7 @@ export function AiFloatingAssistant() {
   const [statusMsg, setStatusMsg] = useState('')
   const [hasExecuted, setHasExecuted] = useState(false) // 执行过则保持隐藏
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const lastClickRef = useRef(0) // 双击检测
 
   // ── 浮动步骤指示 ──
   const [currentStep, setCurrentStep] = useState<{ desc: string; idx: number; total: number } | null>(null)
@@ -150,7 +151,7 @@ export function AiFloatingAssistant() {
       <div className="absolute bottom-[92px] left-9 z-[55] group">
         {/* hover 提示 */}
         <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-md text-[10px] text-foreground/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          AI 智能操控
+          {isRunning ? '双击停止执行' : 'AI 智能操控'}
         </div>
         {/* 彩色旋转光环 - 仅在执行时显示 */}
         {isRunning && (
@@ -174,7 +175,27 @@ export function AiFloatingAssistant() {
         )}
         {/* 按钮主体 */}
         <button
-          onClick={() => { setOpen(!open); if (!open) { setStatus('idle'); setHasExecuted(false) } }}
+          onClick={() => {
+            if (isRunning) {
+              // 执行中：双击停止
+              const now = Date.now()
+              if (now - lastClickRef.current < 400) {
+                lastClickRef.current = 0
+                window.electronAPI?.aiAgent?.cancel()
+                setOpen(false)
+                setStatus('idle')
+                setHasExecuted(false)
+                setCurrentStep(null)
+                setStepVisible(false)
+                showToast('success', '已停止执行')
+              } else {
+                lastClickRef.current = now
+              }
+              return
+            }
+            setOpen(!open)
+            if (!open) { setStatus('idle'); setHasExecuted(false) }
+          }}
           className={cn(
             'relative z-10 flex h-9 w-9 items-center justify-center rounded-full shadow-lg border transition-all duration-200',
             open
@@ -199,17 +220,17 @@ export function AiFloatingAssistant() {
               : 'opacity-0 translate-y-2 pointer-events-none'
           )}
         >
-          <div className="bg-background/70 backdrop-blur-md border border-border/60 rounded-lg px-3 py-2 shadow-lg max-w-[240px]">
-            <div className="flex items-center gap-2">
-              <svg className="h-3 w-3 shrink-0 text-primary animate-spin" viewBox="0 0 24 24" fill="none">
+          <div className="bg-background/70 backdrop-blur-md border border-border/60 rounded-lg px-4 py-3 shadow-lg max-w-[300px]">
+            <div className="flex items-center gap-2.5">
+              <svg className="h-4 w-4 shrink-0 text-primary animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="text-xs text-foreground/90 leading-relaxed line-clamp-2 flex-1">
+              <span className="text-sm text-foreground/90 leading-snug line-clamp-3 flex-1">
                 {currentStep.desc}
               </span>
               {currentStep.total > 0 && (
-                <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
+                <span className="text-[11px] text-muted-foreground/60 font-mono shrink-0">
                   {currentStep.idx}/{currentStep.total}
                 </span>
               )}

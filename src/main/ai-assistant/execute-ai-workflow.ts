@@ -20,6 +20,7 @@ export interface AiWorkflowResult {
 
 /** 步骤进度回调 */
 export type StepProgressCallback = (description: string, index: number, total: number) => void
+export type CancelCheck = () => boolean
 
 /**
  * 执行 AI 工作流
@@ -32,6 +33,7 @@ export async function executeAiWorkflow(
   userInput: string,
   deviceSerial: string,
   onStep?: StepProgressCallback,
+  isCancelled?: CancelCheck,
 ): Promise<AiWorkflowResult> {
   const parseGraph = createParseGraph()
 
@@ -76,6 +78,18 @@ export async function executeAiWorkflow(
 
   let i = 0
   while (i < mutableSteps.length) {
+    // 检查取消
+    if (isCancelled?.()) {
+      console.log('[AiWorkflow] 用户取消执行')
+      return {
+        success: false,
+        engineSteps: mutableSteps,
+        stepResults,
+        error: '执行已取消',
+        duration: Date.now() - startTime,
+      }
+    }
+
     const step = mutableSteps[i]
     ctx.currentIndex = i
 

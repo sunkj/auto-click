@@ -44,6 +44,19 @@ function pushStatus(node: string, message: string) {
 // 历史记录（内存存储，后续可持久化到 SQLite）
 let historyStore: AgentState['history'] = []
 
+// ── 取消执行标记 ──
+let cancelRequested = false
+
+/** 检查是否请求取消 */
+export function isCancelRequested(): boolean {
+  return cancelRequested
+}
+
+/** 重置取消标记 */
+export function resetCancelFlag(): void {
+  cancelRequested = false
+}
+
 export function registerAiAgentHandlers(): void {
   ipcMain.handle(AI_AGENT_CHANNELS.SUBMIT, async (_event, payload: { input: string }) => {
     const apiKey = getDeepSeekKey()
@@ -67,6 +80,7 @@ export function registerAiAgentHandlers(): void {
     }
 
     // 异步执行，不等待完成
+    resetCancelFlag()
     executeWorkflow(payload.input, serial).catch((err) => {
       console.error('[AiAgent] 工作流执行失败:', err)
     })
@@ -75,8 +89,7 @@ export function registerAiAgentHandlers(): void {
   })
 
   ipcMain.handle(AI_AGENT_CHANNELS.CANCEL, async () => {
-    // 由于 LangGraph 节点执行中无法优雅中断，
-    // 目前通过标记停止，让当前节点完成后不继续执行
+    cancelRequested = true
     send(AI_AGENT_CHANNELS.STATUS, {
       status: 'failed',
       node: '',
@@ -104,7 +117,7 @@ async function executeWorkflow(userInput: string, deviceSerial: string): Promise
         stepIndex: idx,
         totalSteps: total,
       } as StatusPayload)
-    })
+    }, isCancelRequested)
 
     console.log('[AiAgent] 工作流完成:', JSON.stringify(result).slice(0, 300))
 
