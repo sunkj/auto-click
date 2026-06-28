@@ -43,7 +43,8 @@ export class ScriptService {
     filePath: string,
     description?: string,
     sortOrder?: number,
-    parentId?: string | null
+    parentId?: string | null,
+    initialContext?: Record<string, string>
   ): Promise<ScriptEntity> {
     await this.ensureInitialized()
     let order = sortOrder
@@ -57,6 +58,7 @@ export class ScriptService {
       name,
       filePath,
       description,
+      initialContext,
       sortOrder: order,
     }
     return this.scriptRepo.create(params)

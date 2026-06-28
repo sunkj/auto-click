@@ -57,7 +57,7 @@ const recordedClickAPI = {
 
 const scriptAPI = {
   // --- 脚本 ---
-  createScript: (args: { name: string; filePath: string; description?: string; parentId?: string | null }) =>
+  createScript: (args: { name: string; filePath: string; description?: string; parentId?: string | null; initialContext?: Record<string, string> }) =>
     ipcRenderer.invoke(IPC.SCRIPT_CREATE, args),
   getAllScripts: () =>
     ipcRenderer.invoke(IPC.SCRIPT_GET_ALL),
@@ -186,8 +186,8 @@ const ENGINE = {
 }
 
 const engineAPI = {
-  runScript: (scriptId: string, serial: string) => ipcRenderer.invoke(ENGINE.RUN, scriptId, serial),
-  runStep: (scriptId: string, stepIndex: number, serial: string) => ipcRenderer.invoke(ENGINE.RUN_STEP, scriptId, stepIndex, serial),
+  runScript: (scriptId: string, serial: string, externalContext?: Record<string, string>) => ipcRenderer.invoke(ENGINE.RUN, scriptId, serial, externalContext),
+  runStep: (scriptId: string, stepIndex: number, serial: string, externalContext?: Record<string, string>) => ipcRenderer.invoke(ENGINE.RUN_STEP, scriptId, stepIndex, serial, externalContext),
   stopExecution: () => ipcRenderer.invoke(ENGINE.STOP),
   getStatus: () => ipcRenderer.invoke(ENGINE.GET_STATUS),
 

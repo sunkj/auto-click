@@ -19,6 +19,7 @@ export class ScriptRepository {
       name: params.name,
       filePath: params.filePath ?? null,
       description: params.description ?? null,
+      initialContext: params.initialContext ?? null,
       sortOrder: params.sortOrder ?? 0,
     })
     return this.repo.save(entity)
@@ -50,6 +51,7 @@ export class ScriptRepository {
     if (updates.parentId !== undefined) entity.parentId = updates.parentId
     if (updates.filePath !== undefined) entity.filePath = updates.filePath
     if (updates.description !== undefined) entity.description = updates.description
+    if (updates.initialContext !== undefined) entity.initialContext = updates.initialContext
     if (updates.sortOrder !== undefined) entity.sortOrder = updates.sortOrder
 
     return this.repo.save(entity)

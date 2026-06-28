@@ -29,6 +29,8 @@ export interface RendererStep {
   params: Record<string, string>
   description: string
   name: string
+  condition?: { key: string; value: string; onMatch: 'skip' | 'stop' }
+  contextOutput?: { key: string; value: string }
 }
 
 export interface RendererScript {
@@ -36,6 +38,7 @@ export interface RendererScript {
   name: string
   type: 'folder' | 'script'
   parentId: string | null
+  initialContext?: Record<string, string>
   steps?: RendererStep[]
 }
 
@@ -108,7 +111,7 @@ function flattenStepData(type: string, data: StepData): {
 }
 
 export function stepEntityToRenderer(step: StepEntity): RendererStep {
-  const data = JSON.parse(step.data) as StepData
+  const data = JSON.parse(step.data) as any
   const { params, description } = flattenStepData(step.type, data)
   return {
     id: String(step.id),
@@ -117,6 +120,8 @@ export function stepEntityToRenderer(step: StepEntity): RendererStep {
     params,
     description,
     name: step.name || '',
+    condition: data._condition,
+    contextOutput: data._context,
   }
 }
 
@@ -126,6 +131,7 @@ export function scriptEntityToRenderer(script: ScriptEntity): RendererScript {
     name: script.name,
     type: (script.type as RendererScript['type']) || 'script',
     parentId: script.parentId ?? null,
+    initialContext: script.initialContext ?? undefined,
     steps: script.steps?.map(stepEntityToRenderer),
   }
 }
@@ -184,9 +190,17 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
 }
 
 export function rendererFormToCreateStep(type: string, params: Record<string, string>, name?: string): CreateStepParams {
+  const data = rendererParamsToStepData(type, params) as any
+  // 合并前置条件和 context 写入
+  if (params._condition_key || params._condition_value) {
+    data._condition = { key: params._condition_key || '', value: params._condition_value || '', onMatch: params._condition_onMatch || 'skip' }
+  }
+  if (params._context_key || params._context_value) {
+    data._context = { key: params._context_key || '', value: params._context_value || '' }
+  }
   return {
     type: type as CreateStepParams['type'],
-    data: rendererParamsToStepData(type, params),
+    data,
     name,
   }
 }

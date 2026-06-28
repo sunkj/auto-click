@@ -22,6 +22,7 @@ import {
   CircleDot,
   AppWindow,
   Brain,
+  X,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -56,6 +57,7 @@ export function StepPanel() {
   const [editScriptOpen, setEditScriptOpen] = useState(false)
   const [editScriptName, setEditScriptName] = useState('')
   const [editScriptFolder, setEditScriptFolder] = useState<string | null>(null)
+  const [editContextEntries, setEditContextEntries] = useState<{ key: string; value: string }[]>([])
   const [deleteStepTarget, setDeleteStepTarget] = useState<Step | null>(null)
   const [editingStep, setEditingStep] = useState<Step | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
@@ -124,16 +126,25 @@ export function StepPanel() {
     if (!currentScript) return
     setEditScriptName(currentScript.name)
     setEditScriptFolder(currentScript.parentId)
+    setEditContextEntries(
+      currentScript.initialContext
+        ? Object.entries(currentScript.initialContext).map(([key, value]) => ({ key, value }))
+        : []
+    )
     setEditScriptOpen(true)
   }
 
-  // 保存脚本名称 + 目录
+  // 保存脚本名称 + 目录 + context
   const handleSaveScriptName = async () => {
     if (!currentScript || !editScriptName.trim()) return
     const name = editScriptName.trim()
+    const initialContext = editContextEntries.filter((e) => e.key.trim())
     await useScriptStore.getState().updateScript(currentScript.id, {
       name,
       parentId: editScriptFolder,
+      initialContext: initialContext.length > 0
+        ? Object.fromEntries(initialContext.map((e) => [e.key.trim(), e.value]))
+        : undefined,
     })
     setEditScriptOpen(false)
   }
@@ -307,6 +318,21 @@ export function StepPanel() {
                         <div className="text-xs text-muted-foreground truncate">
                           {step.description}
                         </div>
+                        {/* 条件 & Context 信息 */}
+                        {(step as any).condition || (step as any).contextOutput ? (
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {(step as any).condition && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600/80 bg-amber-50 dark:text-amber-400/80 dark:bg-amber-400/10 px-1 py-0.5 rounded">
+                                ⚡ {((step as any).condition as any).key}={((step as any).condition as any).value}
+                              </span>
+                            )}
+                            {(step as any).contextOutput && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-blue-600/80 bg-blue-50 dark:text-blue-400/80 dark:bg-blue-400/10 px-1 py-0.5 rounded">
+                                📝 {((step as any).contextOutput as any).key}={((step as any).contextOutput as any).value}
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
                       </div>
                     </button>
                   </div>
@@ -365,17 +391,6 @@ export function StepPanel() {
           <DialogDescription>修改脚本名称或目录</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">脚本名称</label>
-            <Input
-              placeholder="输入脚本名称..."
-              value={editScriptName}
-              onChange={(e) => setEditScriptName(e.target.value)}
-              className="h-8 text-sm"
-              autoFocus
-            />
-          </div>
-
           {/* 目录选择器 */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground">目录</label>
@@ -407,6 +422,61 @@ export function StepPanel() {
                   {f.name}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">脚本名称</label>
+            <Input
+              placeholder="输入脚本名称..."
+              value={editScriptName}
+              onChange={(e) => setEditScriptName(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+            />
+          </div>
+
+          {/* 初始上下文 */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">初始上下文</label>
+            <div className="space-y-2 max-h-[180px] overflow-y-auto">
+              {editContextEntries.map((entry, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <Input
+                    placeholder="key"
+                    value={entry.key}
+                    onChange={(e) => {
+                      const entries = [...editContextEntries]
+                      entries[i] = { ...entries[i], key: e.target.value }
+                      setEditContextEntries(entries)
+                    }}
+                    className="h-7 text-xs flex-1"
+                  />
+                  <Input
+                    placeholder="value"
+                    value={entry.value}
+                    onChange={(e) => {
+                      const entries = [...editContextEntries]
+                      entries[i] = { ...entries[i], value: e.target.value }
+                      setEditContextEntries(entries)
+                    }}
+                    className="h-7 text-xs flex-1"
+                  />
+                  <button
+                    onClick={() => setEditContextEntries(editContextEntries.filter((_, idx) => idx !== i))}
+                    className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setEditContextEntries([...editContextEntries, { key: '', value: '' }])}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                添加
+              </button>
             </div>
           </div>
         </div>

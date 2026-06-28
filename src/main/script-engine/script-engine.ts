@@ -40,12 +40,13 @@ export class ScriptEngine {
   }
 
   /** 全量执行脚本 */
-  async runFullScript(scriptId: string, serial: string): Promise<ExecutionResult> {
+  async runFullScript(scriptId: string, serial: string, externalContext?: Record<string, string>): Promise<ExecutionResult> {
     return new Promise((resolve, reject) => {
       this.queue.enqueue({
         scriptId,
         serial,
         mode: 'full',
+        externalContext,
         resolve,
         reject,
       })
@@ -54,7 +55,7 @@ export class ScriptEngine {
   }
 
   /** 单步执行 */
-  async runSingleStep(scriptId: string, stepIndex: number, serial: string): Promise<ExecutionResult> {
+  async runSingleStep(scriptId: string, stepIndex: number, serial: string, externalContext?: Record<string, string>): Promise<ExecutionResult> {
     return new Promise((resolve, reject) => {
       this.queue.enqueue({
         scriptId,
@@ -112,8 +113,10 @@ export class ScriptEngine {
         stepsToRun = scriptObj.steps
       }
 
-      // 4. 创建上下文
-      const ctx = createExecutionContext(scriptId, serial, stepsToRun, stepInterval)
+      // 4. 创建上下文（合并：外部传入 > 脚本初始 > 空）
+      const externalCtx = task.externalContext || {}
+      const mergedCtx = { ...scriptObj.initialContext, ...externalCtx }
+      const ctx = createExecutionContext(scriptId, serial, stepsToRun, stepInterval, mergedCtx)
 
       // 5. 顺序执行
       const totalSteps = stepsToRun.length

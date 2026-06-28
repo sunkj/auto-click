@@ -32,10 +32,11 @@ export function registerScriptHandlers(): void {
     filePath: string
     description?: string
     parentId?: string | null
+    initialContext?: Record<string, string>
   }) => {
     try {
       const service = getService()
-      const script = await service.createScript(args.name, args.filePath, args.description, undefined, args.parentId)
+      const script = await service.createScript(args.name, args.filePath, args.description, undefined, args.parentId, args.initialContext)
       return { success: true, data: scriptEntityToRenderer(script) }
     } catch (error) {
       return { success: false, error: String(error) }

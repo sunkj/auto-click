@@ -13,6 +13,8 @@ export interface Step {
   params: Record<string, string>
   description: string
   name: string
+  condition?: { key: string; value: string; onMatch: 'skip' | 'stop' }
+  contextOutput?: { key: string; value: string }
 }
 
 export interface Script {
@@ -20,6 +22,7 @@ export interface Script {
   name: string
   type: 'folder' | 'script'
   parentId: string | null
+  initialContext?: Record<string, string>
   steps?: Step[]
 }
 
@@ -55,8 +58,8 @@ interface ScriptStore {
   loadScripts: () => Promise<void>
 
   // 脚本 CRUD（异步）
-  createScript: (name: string, parentId?: string | null, description?: string) => Promise<void>
-  updateScript: (id: string, updates: { name?: string; description?: string; parentId?: string | null }) => Promise<void>
+  createScript: (name: string, parentId?: string | null, description?: string, initialContext?: Record<string, string>) => Promise<void>
+  updateScript: (id: string, updates: { name?: string; description?: string; parentId?: string | null; initialContext?: Record<string, string> }) => Promise<void>
   deleteScript: (id: string) => Promise<void>
   updateScriptsOrder: (scriptIds: string[]) => Promise<void>
 
@@ -137,7 +140,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   /**
    * 创建新脚本
    */
-  createScript: async (name, parentId, description) => {
+  createScript: async (name, parentId, description, initialContext) => {
     const api = getAPI()
     if (!api) return
 
@@ -151,6 +154,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
         filePath,
         description,
         parentId: parentId ?? null,
+        initialContext,
       })
       if (result.success && result.data) {
         // 追加到本地列表
@@ -385,7 +389,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     set({ executingStepIndex: null })
   },
 
-  runScript: async (scriptId: string) => {
+  runScript: async (scriptId: string, externalContext?: Record<string, string>) => {
     const eng = window.electronAPI?.engine
     if (!eng) return
     const serial = useDeviceStore.getState().deviceInfo?.serial
@@ -394,7 +398,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     await get().refreshSteps(scriptId)
     set({ executingStepIndex: 0 })
     try {
-      await eng.runScript(scriptId, serial)
+      await eng.runScript(scriptId, serial, externalContext)
     } catch (err) {
       console.error('[ScriptStore] 执行失败:', err); showToast('error', '脚本执行失败')
     } finally {
@@ -405,7 +409,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
   /**
    * 单步执行
    */
-  runStep: async (scriptId: string, stepIndex: number) => {
+  runStep: async (scriptId: string, stepIndex: number, externalContext?: Record<string, string>) => {
     const eng = window.electronAPI?.engine
     if (!eng) { console.error('[ScriptStore] engine API 不可用'); showToast('error', '引擎 API 不可用'); return }
     const serial = useDeviceStore.getState().deviceInfo?.serial
@@ -415,7 +419,7 @@ export const useScriptStore = create<ScriptStore>((set, get) => ({
     await get().refreshSteps(scriptId)
     set({ executingStepIndex: stepIndex })
     try {
-      const result = await eng.runStep(scriptId, stepIndex, serial)
+      const result = await eng.runStep(scriptId, stepIndex, serial, externalContext)
       console.log('[ScriptStore] 执行结果:', result)
       if (result && !result.success) {
         console.error('[ScriptStore] 执行失败:', result.error); showToast('error', result.error || '步骤执行失败')

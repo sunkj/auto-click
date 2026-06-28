@@ -9,40 +9,113 @@ import { captureScreenshot } from '../ai-agent/tools/screenshot'
 import { checkScreenText } from '../ai-agent/tools/text-check'
 import { convertToEngineSteps } from '../ai-agent/tools/step-converter'
 
+// =============================================================================
+// Context 工具函数
+// =============================================================================
+
+/** 解析 {{key}} 模板，将 data 中所有字符串值替换为 context 中的值 */
+export function resolveTemplates(data: Record<string, any>, context: Record<string, string>): Record<string, any> {
+  const result: Record<string, any> = {}
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      result[key] = value.replace(/\{\{(\w+)\}\}/g, (_, name) => context[name] ?? `{{${name}}}`
+      )
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
+/** 检查前置条件 */
+function checkCondition(
+  condition: { key: string; value: string; onMatch: 'skip' | 'stop' } | undefined,
+  resolvedData: Record<string, any>,
+  context: Record<string, string>,
+): { matched: boolean; action: 'skip' | 'stop' | null } {
+  if (!condition) return { matched: false, action: null }
+  const key = condition.key
+  const targetValue = condition.value
+  const actualValue = context[key]
+  const matched = actualValue === targetValue
+  if (matched) {
+    console.log(`[Context] 条件匹配: context["${key}"]="${actualValue}" === "${targetValue}" → ${condition.onMatch}`)
+    return { matched: true, action: condition.onMatch }
+  }
+  return { matched: false, action: null }
+}
+
+/** 写入 Context */
+function applyContextOutput(
+  ctxOutput: { key: string; value: string } | undefined,
+  resolvedData: Record<string, any>,
+  context: Record<string, string>,
+): void {
+  if (!ctxOutput) return
+  const key = ctxOutput.key
+  const value = ctxOutput.value
+  if (key) {
+    context[key] = value
+    console.log(`[Context] 写入: context["${key}"] = "${value}"`)
+  }
+}
+
 /** 步骤执行器 — 通过 adb shell 直接执行命令，不依赖 screen-mirror */
 export class StepExecutor {
   async execute(step: EngineStep, context: ExecutionContext): Promise<StepResult> {
     const start = Date.now()
+
+    // 1. 解析模板
+    const resolvedData = resolveTemplates(step.data, context.context)
+
+    // 2. 检查前置条件
+    const condition = resolvedData._condition as { key: string; value: string; onMatch: 'skip' | 'stop' } | undefined
+    const condResult = checkCondition(condition, resolvedData, context.context)
+    if (condResult.matched) {
+      const duration = Date.now() - start
+      if (condResult.action === 'stop') {
+        return { success: false, stepIndex: context.currentIndex, error: `条件匹配: 脚本已停止`, duration }
+      }
+      // skip: 记录跳过并返回成功
+      console.log(`[StepExecutor] ⏭ 跳过步骤 #${context.currentIndex}: ${step.type}`)
+      return { success: true, stepIndex: context.currentIndex, duration }
+    }
+
     const name = step.data?.name || step.data?.description || ''
     const stepLabel = name ? `${step.type} (${name})` : step.type
-    const stepDesc = `${stepLabel} ${JSON.stringify(step.data).slice(0, 80)}`
+    const stepDesc = `${stepLabel} ${JSON.stringify(resolvedData).slice(0, 80)}`
     console.log(`[StepExecutor] ▶ 执行步骤 #${context.currentIndex}: ${stepDesc}`)
     try {
       switch (step.type) {
         case 'click':
-          await this.executeClick(step.data, context.serial)
+          await this.executeClick(resolvedData, context.serial)
           break
         case 'type':
-          await this.executeType(step.data, context.serial)
+          await this.executeType(resolvedData, context.serial)
           break
         case 'swipe':
-          await this.executeSwipe(step.data, context.serial)
+          await this.executeSwipe(resolvedData, context.serial)
           break
         case 'longpress':
-          await this.executeLongPress(step.data, context.serial)
+          await this.executeLongPress(resolvedData, context.serial)
           break
         case 'home':
           await this.executeHome(context.serial)
           break
         case 'ai':
-          await this.executeAi(step.data, context)
+          await this.executeAi(resolvedData, context)
           break
         case 'openApp':
-          await this.executeOpenApp(step.data, context.serial)
+          await this.executeOpenApp(resolvedData, context.serial)
           break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
       }
+
+      // 3. 写入 Context
+      const ctxOutput = resolvedData._context as { key: string; value: string } | undefined
+      applyContextOutput(ctxOutput, resolvedData, context.context)
+
       const duration = Date.now() - start
       console.log(`[StepExecutor] ✔ 步骤 #${context.currentIndex} 完成 (${duration}ms): ${stepDesc}`)
       return { success: true, stepIndex: context.currentIndex, duration }

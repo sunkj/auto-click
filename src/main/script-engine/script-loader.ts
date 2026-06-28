@@ -21,6 +21,7 @@ export class ScriptLoader {
     return {
       name: entity.name,
       description: entity.description || undefined,
+      initialContext: entity.initialContext || undefined,
       steps: steps.map((s) => this.toEngineStep(s)),
     }
   }

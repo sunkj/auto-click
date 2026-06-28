@@ -32,6 +32,7 @@ const CREATE_TABLES_SQL = [
     "name" text NOT NULL,
     "file_path" text UNIQUE,
     "description" text,
+    "initial_context" text,
     "sort_order" integer NOT NULL DEFAULT 0,
     "created_at" datetime NOT NULL DEFAULT (datetime('now')),
     "updated_at" datetime NOT NULL DEFAULT (datetime('now'))
@@ -97,6 +98,14 @@ export async function initializeDatabase(): Promise<void> {
       try {
         await queryRunner.query(`ALTER TABLE "steps" ADD COLUMN "name" text`)
         console.log('[Database] 迁移: steps.name 列已添加')
+      } catch {
+        // 列已存在则忽略
+      }
+
+      // 迁移：为已有数据库添加 initial_context 列（幂等执行）
+      try {
+        await queryRunner.query(`ALTER TABLE "scripts" ADD COLUMN "initial_context" text`)
+        console.log('[Database] 迁移: scripts.initial_context 列已添加')
       } catch {
         // 列已存在则忽略
       }

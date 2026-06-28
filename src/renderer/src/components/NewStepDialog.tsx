@@ -64,17 +64,19 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   const [stepName, setStepName] = useState<string>(editStep?.name || typeLabels[editStep?.type as StepType] || '点击')
   const [params, setParams] = useState<Record<string, string>>(
     editStep ? paramsFromStep(editStep) : {
-      x: '',
-      y: '',
-      description: '',
-      text: '',
-      direction: 'Up',
-      duration: '',
-      pressDuration: '1.0',
-      appName: '',
-      aiPrompt: '',
+      x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '',
     }
   )
+  const { scripts, currentScriptId } = useScriptStore()
+  const currentScriptForCtx = scripts.find((s) => s.id === currentScriptId)
+  const contextKeyOptions = currentScriptForCtx?.initialContext ? Object.keys(currentScriptForCtx.initialContext) : []
+
+  // 前置条件 & Context 写入
+  const [conditionKey, setConditionKey] = useState('')
+  const [conditionValue, setConditionValue] = useState('')
+  const [conditionOnMatch, setConditionOnMatch] = useState<'skip' | 'stop'>('skip')
+  const [contextKey, setContextKey] = useState('')
+  const [contextValue, setContextValue] = useState('')
 
   // 当 editStep 变化时同步表单
   useEffect(() => {
@@ -82,10 +84,18 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       setStepType(editStep.type as StepType)
       setStepName(editStep.name || typeLabels[editStep.type as StepType] || '')
       setParams(paramsFromStep(editStep))
+      const s = editStep as any
+      setConditionKey(s.condition?.key || '')
+      setConditionValue(s.condition?.value || '')
+      setConditionOnMatch(s.condition?.onMatch || 'skip')
+      setContextKey(s.contextOutput?.key || '')
+      setContextValue(s.contextOutput?.value || '')
     } else {
       setStepType('click')
       setStepName('点击')
       setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '' })
+      setConditionKey(''); setConditionValue(''); setConditionOnMatch('skip')
+      setContextKey(''); setContextValue('')
     }
   }, [editStep])
 
@@ -105,12 +115,24 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   const handleSave = async () => {
     const store = useScriptStore.getState()
 
+    // 合并前置条件和 context 到 params
+    const mergedParams = { ...params }
+    if (conditionKey) {
+      mergedParams._condition_key = conditionKey
+      mergedParams._condition_value = conditionValue
+      mergedParams._condition_onMatch = conditionOnMatch
+    }
+    if (contextKey) {
+      mergedParams._context_key = contextKey
+      mergedParams._context_value = contextValue
+    }
+
     if (isEditMode && editStep) {
       // 编辑模式：更新步骤
       const stepIdNum = Number(editStep.id)
       if (!isNaN(stepIdNum)) {
         try {
-          await store.updateStep(stepIdNum, stepType, params, stepName || undefined)
+          await store.updateStep(stepIdNum, stepType, mergedParams, stepName || undefined)
         } catch (error) {
           console.error('[NewStepDialog] 更新步骤失败:', error)
         }
@@ -120,7 +142,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       const { currentScriptId } = store
       if (!currentScriptId) return
       try {
-        await store.addStep(currentScriptId, stepType as any, params, undefined, stepName || undefined)
+        await store.addStep(currentScriptId, stepType as any, mergedParams, undefined, stepName || undefined)
       } catch (error) {
         console.error('[NewStepDialog] 添加步骤失败:', error)
       }
@@ -286,7 +308,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
                 placeholder="描述 AI 需要执行的操作流程&#10;例如：&#10;1. 打开微信&#10;2. 进入某某聊天窗口&#10;3. 输入内容并发送&#10;4. 返回聊天列表"
                 value={params.description || ''}
                 onChange={(e) => handleParamChange('description', e.target.value)}
-                rows={6}
+                rows={4}
                 className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
@@ -300,14 +322,14 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} className="max-w-[680px]">
       <DialogHeader>
         <DialogTitle>{isEditMode ? '编辑步骤' : '添加步骤'}</DialogTitle>
         <DialogDescription>{isEditMode ? '修改步骤参数' : '选择步骤类型并填写参数'}</DialogDescription>
       </DialogHeader>
 
       {/* Step Type Selector */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-9 gap-1.5 mb-1">
         {types.map((type) => {
           const meta = stepTypeMeta[type]
           const Icon = meta.icon
@@ -317,13 +339,13 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
               key={type}
               onClick={() => handleTypeChange(type)}
               className={cn(
-                'flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-all duration-150 active:scale-[0.97]',
+                'flex flex-col items-center gap-1 py-[6px] rounded-lg border transition-all duration-150 active:scale-[0.97]',
                 isActive
                   ? 'border-primary bg-primary/10'
                   : 'border-border hover:bg-accent hover:border-muted-foreground/20'
               )}
             >
-              <Icon className={cn('h-5 w-5', isActive ? meta.color : 'text-muted-foreground')} />
+              <Icon className={cn('h-4 w-4', isActive ? meta.color : 'text-muted-foreground')} />
               <span className={cn('text-xs font-medium', isActive ? 'text-foreground' : 'text-muted-foreground')}>
                 {meta.label}
               </span>
@@ -333,7 +355,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
       </div>
 
       {/* Step Name */}
-      <div className="space-y-1 mb-4">
+      <div className="space-y-1 mb-1">
         <label className="text-xs text-muted-foreground">步骤名称</label>
         <Input
           placeholder="输入步骤名称..."
@@ -345,6 +367,77 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
 
       {/* Parameters Form */}
       {renderParams()}
+
+      {/* ── 前置条件（折叠） ── */}
+      <details className="group border border-border rounded-md mt-3">
+        <summary className="flex items-center gap-2 px-3 py-[10px] text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
+          <span className="text-amber-500">⚡</span>
+          前置条件
+          <span className="ml-auto text-[10px] opacity-50 group-open:opacity-100">{(conditionKey ? '已设置' : '可选')}</span>
+        </summary>
+        <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] text-muted-foreground">选择 Key</label>
+              <select
+                value={conditionKey}
+                onChange={(e) => setConditionKey(e.target.value)}
+                className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground w-full"
+              >
+                <option value="">-- 请选择 --</option>
+                {contextKeyOptions.map((key) => (
+                  <option key={key} value={key}>{key}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-muted-foreground">等于值</label>
+              <Input placeholder="比较值" value={conditionValue} onChange={(e) => setConditionValue(e.target.value)} className="h-7 text-xs" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-muted-foreground shrink-0">满足时</label>
+            <select
+              value={conditionOnMatch}
+              onChange={(e) => setConditionOnMatch(e.target.value as 'skip' | 'stop')}
+              className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+            >
+              <option value="skip">跳过当前步骤</option>
+              <option value="stop">停止脚本</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      {/* ── 写入 Context（折叠） ── */}
+      <details className="group border border-border rounded-md mt-2">
+        <summary className="flex items-center gap-2 px-3 py-[10px] text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
+          <span className="text-blue-500">📝</span>
+          写入上下文
+          <span className="ml-auto text-[10px] opacity-50 group-open:opacity-100">{(contextKey ? '已设置' : '可选')}</span>
+        </summary>
+        <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] text-muted-foreground">选择 Key</label>
+              <select
+                value={contextKey}
+                onChange={(e) => setContextKey(e.target.value)}
+                className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground w-full"
+              >
+                <option value="">-- 请选择 --</option>
+                {contextKeyOptions.map((key) => (
+                  <option key={key} value={key}>{key}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-muted-foreground">设置 Value</label>
+              <Input placeholder="设置值" value={contextValue} onChange={(e) => setContextValue(e.target.value)} className="h-7 text-xs" />
+            </div>
+          </div>
+        </div>
+      </details>
 
       <DialogFooter>
         <Button variant="outline" size="sm" onClick={handleCancel}>

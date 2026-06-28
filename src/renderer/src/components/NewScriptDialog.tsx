@@ -4,7 +4,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } fr
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { FolderClosed, FileCode, FolderPlus } from 'lucide-react'
+import { FolderClosed, FileCode, FolderPlus, Plus, X } from 'lucide-react'
 
 type Tab = 'script' | 'folder'
 
@@ -13,12 +13,18 @@ interface NewScriptDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface ContextEntry {
+  key: string
+  value: string
+}
+
 export function NewScriptDialog({ open, onOpenChange }: NewScriptDialogProps) {
   const { scripts } = useScriptStore()
   const [tab, setTab] = useState<Tab>('script')
   const [scriptName, setScriptName] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string>('')
   const [folderName, setFolderName] = useState('')
+  const [contextEntries, setContextEntries] = useState<ContextEntry[]>([])
 
   const folders = scripts.filter((s) => s.type === 'folder')
 
@@ -28,15 +34,21 @@ export function NewScriptDialog({ open, onOpenChange }: NewScriptDialogProps) {
     setScriptName('')
     setSelectedFolder('')
     setFolderName('')
+    setContextEntries([])
   }
 
   // 创建脚本
   const handleCreateScript = async () => {
     if (!scriptName.trim()) return
+    const initialContext = contextEntries.filter((e) => e.key.trim())
     try {
       await useScriptStore.getState().createScript(
         scriptName.trim(),
-        selectedFolder || null
+        selectedFolder || null,
+        undefined,
+        initialContext.length > 0
+          ? Object.fromEntries(initialContext.map((e) => [e.key.trim(), e.value]))
+          : undefined
       )
     } catch (error) {
       console.error('[NewScriptDialog] 创建脚本失败:', error)
@@ -55,6 +67,20 @@ export function NewScriptDialog({ open, onOpenChange }: NewScriptDialogProps) {
     }
     onOpenChange(false)
     resetForm()
+  }
+
+  const addContextEntry = () => {
+    setContextEntries([...contextEntries, { key: '', value: '' }])
+  }
+
+  const updateContextEntry = (index: number, field: 'key' | 'value', val: string) => {
+    const entries = [...contextEntries]
+    entries[index] = { ...entries[index], [field]: val }
+    setContextEntries(entries)
+  }
+
+  const removeContextEntry = (index: number) => {
+    setContextEntries(contextEntries.filter((_, i) => i !== index))
   }
 
   return (
@@ -101,17 +127,6 @@ export function NewScriptDialog({ open, onOpenChange }: NewScriptDialogProps) {
       {/* 脚本 Tab */}
       {tab === 'script' && (
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">脚本名称</label>
-            <Input
-              placeholder="输入脚本名称..."
-              value={scriptName}
-              onChange={(e) => setScriptName(e.target.value)}
-              className="h-8 text-sm"
-              autoFocus
-            />
-          </div>
-
           {/* 目录选择器 */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground">保存位置</label>
@@ -143,6 +158,53 @@ export function NewScriptDialog({ open, onOpenChange }: NewScriptDialogProps) {
                   {f.name}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">脚本名称</label>
+            <Input
+              placeholder="输入脚本名称..."
+              value={scriptName}
+              onChange={(e) => setScriptName(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+            />
+          </div>
+
+          {/* 初始上下文 */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground">初始上下文</label>
+            <div className="space-y-2 max-h-[180px] overflow-y-auto">
+              {contextEntries.map((entry, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <Input
+                    placeholder="key"
+                    value={entry.key}
+                    onChange={(e) => updateContextEntry(i, 'key', e.target.value)}
+                    className="h-7 text-xs flex-1"
+                  />
+                  <Input
+                    placeholder="value"
+                    value={entry.value}
+                    onChange={(e) => updateContextEntry(i, 'value', e.target.value)}
+                    className="h-7 text-xs flex-1"
+                  />
+                  <button
+                    onClick={() => removeContextEntry(i)}
+                    className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addContextEntry}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                添加
+              </button>
             </div>
           </div>
 

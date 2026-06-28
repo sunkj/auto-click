@@ -163,8 +163,8 @@ interface Window {
     script: ElectronScriptAPI
     screenMirror: ElectronScreenMirrorAPI
     engine?: {
-      runScript: (scriptId: string, serial: string) => Promise<IpcResult<unknown>>
-      runStep: (scriptId: string, stepIndex: number, serial: string) => Promise<IpcResult<unknown>>
+      runScript: (scriptId: string, serial: string, externalContext?: Record<string, string>) => Promise<IpcResult<unknown>>
+      runStep: (scriptId: string, stepIndex: number, serial: string, externalContext?: Record<string, string>) => Promise<IpcResult<unknown>>
       stopExecution: () => Promise<IpcResult<unknown>>
       getStatus: () => Promise<IpcResult<unknown>>
       onStepStart: (callback: (event: any) => void) => () => void

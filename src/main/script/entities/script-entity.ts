@@ -30,6 +30,9 @@ export class ScriptEntity {
   @Column('text', { nullable: true })
   description!: string | null
 
+  @Column('simple-json', { name: 'initial_context', nullable: true })
+  initialContext!: Record<string, string> | null
+
   @Column('integer', { name: 'sort_order', default: 0 })
   sortOrder!: number
 

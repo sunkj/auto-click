@@ -23,19 +23,19 @@ export function registerEngineHandlers(): void {
   engine = new ScriptEngine(scriptService)
 
   // serial 由渲染进程从 deviceStore 获取后传入
-  ipcMain.handle(ENGINE_CHANNELS.RUN, async (_event, scriptId: string, serial: string) => {
+  ipcMain.handle(ENGINE_CHANNELS.RUN, async (_event, scriptId: string, serial: string, externalContext?: Record<string, string>) => {
     if (!serial) return { success: false, error: '设备未连接' }
     try {
-      return await engine!.runFullScript(scriptId, serial)
+      return await engine!.runFullScript(scriptId, serial, externalContext)
     } catch (err: any) {
       return { success: false, error: err.message }
     }
   })
 
-  ipcMain.handle(ENGINE_CHANNELS.RUN_STEP, async (_event, scriptId: string, stepIndex: number, serial: string) => {
+  ipcMain.handle(ENGINE_CHANNELS.RUN_STEP, async (_event, scriptId: string, stepIndex: number, serial: string, externalContext?: Record<string, string>) => {
     if (!serial) return { success: false, error: '设备未连接' }
     try {
-      return await engine!.runSingleStep(scriptId, stepIndex, serial)
+      return await engine!.runSingleStep(scriptId, stepIndex, serial, externalContext)
     } catch (err: any) {
       return { success: false, error: err.message }
     }

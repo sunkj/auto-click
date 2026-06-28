@@ -24,6 +24,7 @@ export interface ScriptObject {
   description?: string
   stepInterval?: number
   steps: EngineStep[]
+  initialContext?: Record<string, string>
 }
 
 // =============================================================================
@@ -92,6 +93,7 @@ export interface CreateScriptParams {
   name: string
   filePath?: string | null
   description?: string
+  initialContext?: Record<string, string>
   sortOrder?: number
 }
 
@@ -102,6 +104,7 @@ export interface UpdateScriptParams {
   parentId?: string | null
   filePath?: string
   description?: string
+  initialContext?: Record<string, string>
   sortOrder?: number
 }
 
@@ -168,6 +171,20 @@ export interface ExecutionContext {
   stepInterval: number
   currentIndex: number
   startTime: number
+  context: Record<string, string>
+}
+
+/** 前置条件 */
+export interface StepCondition {
+  key: string
+  value: string
+  onMatch: 'skip' | 'stop'
+}
+
+/** Context 写入 */
+export interface StepContextOutput {
+  key: string
+  value: string
 }
 
 /** 队列任务 */
@@ -176,6 +193,7 @@ export interface PendingTask {
   serial: string
   mode: 'full' | 'single'
   stepIndex?: number
+  externalContext?: Record<string, string>
   resolve: (result: ExecutionResult) => void
   reject: (error: Error) => void
 }

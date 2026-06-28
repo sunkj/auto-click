@@ -7,6 +7,7 @@ export function createExecutionContext(
   serial: string,
   steps: EngineStep[],
   stepInterval: number,
+  initialContext?: Record<string, string>,
 ): IExecutionContext {
   return {
     executionId: randomUUID(),
@@ -16,5 +17,6 @@ export function createExecutionContext(
     stepInterval,
     currentIndex: 0,
     startTime: Date.now(),
+    context: { ...initialContext },
   }
 }
