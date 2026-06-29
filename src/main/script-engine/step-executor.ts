@@ -108,6 +108,9 @@ export class StepExecutor {
         case 'openApp':
           await this.executeOpenApp(resolvedData, context.serial)
           break
+        case 'checkText':
+          await this.executeCheckText(resolvedData, context)
+          break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
       }
@@ -340,5 +343,28 @@ export class StepExecutor {
     }
 
     throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未找到应用 "${appName}"`)
+  }
+
+  /** 执行屏幕文本检测 — 截图 → VLM 检测 → 匹配时写入上下文 */
+  private async executeCheckText(data: Record<string, any>, context: ExecutionContext): Promise<void> {
+    const target = String(data.text || '')
+    if (!target) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '检测文本不能为空')
+    }
+
+    console.log(`[StepExecutor]   ▶ 屏幕文本检测: "${target}"`)
+
+    // 1. 截图
+    const screenshot = await captureScreenshot(context.serial)
+
+    // 2. 调用 VLM 检测文本
+    const screenCheckResult = await checkScreenText(screenshot.base64, target, 'text')
+    console.log(`[StepExecutor]     检测结果: matched=${screenCheckResult.matched}, desc="${screenCheckResult.description}"`)
+
+    // 3. 未匹配时清空 _context，阻止后续通用写入
+    if (!screenCheckResult.matched) {
+      delete data._context
+      console.log(`[StepExecutor]     文本未匹配，跳过上下文写入`)
+    }
   }
 }

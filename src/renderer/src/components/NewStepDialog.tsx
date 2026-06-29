@@ -14,9 +14,10 @@ import {
   House,
   AppWindow,
   Brain,
+  ScanSearch,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText'
 
 interface NewStepDialogProps {
   open: boolean
@@ -32,6 +33,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   home: { label: '回主屏幕', icon: House, color: 'text-orange-500' },
   openApp: { label: '打开App', icon: AppWindow, color: 'text-sky-500' },
   ai: { label: 'AI', icon: Brain, color: 'text-cyan-500' },
+  checkText: { label: '文本检测', icon: ScanSearch, color: 'text-rose-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -55,6 +57,7 @@ const typeLabels: Record<StepType, string> = {
   home: '回主屏幕',
   openApp: '打开App',
   ai: 'AI',
+  checkText: '文本检测',
 }
 
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
@@ -64,7 +67,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
   const [stepName, setStepName] = useState<string>(editStep?.name || typeLabels[editStep?.type as StepType] || '点击')
   const [params, setParams] = useState<Record<string, string>>(
     editStep ? paramsFromStep(editStep) : {
-      x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '',
+      x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '', checkText: '',
     }
   )
   const { scripts, currentScriptId } = useScriptStore()
@@ -93,7 +96,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     } else {
       setStepType('click')
       setStepName('点击')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '', checkText: '' })
       setConditionKey(''); setConditionValue(''); setConditionOnMatch('skip')
       setContextKey(''); setContextValue('')
     }
@@ -154,7 +157,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai', 'checkText']
 
   // 从录制记录选择
   const [showRecordSelector, setShowRecordSelector] = useState(false)
@@ -314,6 +317,25 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
             </div>
             <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2.5 text-xs text-blue-700 leading-relaxed">
               💡 需要支持更多的指令，请先<strong>录制添加更多的指令</strong>
+            </div>
+          </div>
+        )
+      case 'checkText':
+        return (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">检测文本</label>
+              <Input
+                placeholder="输入要检测的文本，如：成功、发送、确认"
+                value={params.checkText || ''}
+                onChange={(e) => handleParamChange('checkText', e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs text-rose-700 leading-relaxed">
+              🔍 执行时将自动截取当前屏幕检测文本。
+              检测到文本时，才会执行下方的<strong>「写入上下文」</strong>；
+              未检测到则不写入。
             </div>
           </div>
         )
