@@ -150,7 +150,10 @@ export function AiFloatingAssistant() {
       {/* 浮动按钮（带彩色环绕动画） */}
       <div className="absolute bottom-[92px] left-9 z-[55] group">
         {/* hover 提示 */}
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-md text-[10px] text-foreground/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+        <div className={cn(
+          'absolute left-full ml-2 top-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-md text-[10px] text-foreground/80 whitespace-nowrap transition-opacity duration-200 pointer-events-none',
+          isRunning ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        )}>
           {isRunning ? '双击停止执行' : 'AI 智能操控'}
         </div>
         {/* 彩色旋转光环 - 仅在执行时显示 */}
@@ -210,17 +213,17 @@ export function AiFloatingAssistant() {
         </button>
       </div>
 
-      {/* 浮动步骤指示 - 从 AI 按钮向上弹出 */}
+      {/* 浮动步骤指示 - AI 按钮右上角 */}
       {currentStep && (
         <div
           className={cn(
-            'absolute bottom-[134px] left-9 z-[56] transition-all duration-300',
+            'absolute bottom-[132px] left-[72px] z-[56] transition-all duration-300',
             stepVisible
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 translate-y-2 pointer-events-none'
           )}
         >
-          <div className="bg-background/70 backdrop-blur-md border border-border/60 rounded-lg px-4 py-3 shadow-lg max-w-[300px]">
+          <div className="bg-background/85 backdrop-blur-lg border border-border/60 rounded-lg px-4 py-3 shadow-xl max-w-[300px]">
             <div className="flex items-center gap-2.5">
               <svg className="h-4 w-4 shrink-0 text-primary animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -237,7 +240,7 @@ export function AiFloatingAssistant() {
             </div>
           </div>
           {/* 小三角指向 AI 按钮 */}
-          <div className="absolute -bottom-[5px] left-4 w-2.5 h-2.5 bg-background/70 backdrop-blur-md border-r border-b border-border/60 rotate-45" />
+          <div className="absolute -bottom-[5px] left-[18px] w-2.5 h-2.5 bg-background/85 backdrop-blur-md border-r border-b border-border/60 rotate-45" />
         </div>
       )}
 
