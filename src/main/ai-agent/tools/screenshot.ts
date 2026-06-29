@@ -19,7 +19,7 @@ export async function captureScreenshot(serial: string): Promise<ScreenshotResul
 
   const { width: originalWidth, height: originalHeight } = await getDeviceResolution(serial)
   const config = loadConfig()
-  const sCfg = config.aiAgent!.screenshot
+  const sCfg = config.aiAgent!.vlm.screenshot
   const maxWidth = sCfg.maxWidth
   const scale = Math.min(1, maxWidth / originalWidth)
   const scaledWidth = Math.round(originalWidth * scale)

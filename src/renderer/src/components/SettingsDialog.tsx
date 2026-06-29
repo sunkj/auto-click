@@ -7,7 +7,7 @@ import { Play, Key, Wifi, Eye, Brain } from 'lucide-react'
 // Tab 定义
 // =============================================================================
 
-type TabId = 'script' | 'deepseek' | 'zhipu'
+type TabId = 'script' | 'llm' | 'vlm'
 
 interface TabItem {
   id: TabId
@@ -17,8 +17,8 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { id: 'script', label: '脚本执行', icon: <Play className="h-3.5 w-3.5" /> },
-  { id: 'deepseek', label: 'DeepSeek', icon: <Brain className="h-3.5 w-3.5" /> },
-  { id: 'zhipu', label: '智谱 GLM-4V', icon: <Eye className="h-3.5 w-3.5" /> },
+  { id: 'llm', label: '意图解析模型', icon: <Brain className="h-3.5 w-3.5" /> },
+  { id: 'vlm', label: '视觉分析模型', icon: <Eye className="h-3.5 w-3.5" /> },
 ]
 
 // =============================================================================
@@ -31,14 +31,14 @@ interface SettingsDialogProps {
 }
 
 // =============================================================================
-// 组件：DeepSeek 设置表单
+// 组件：LLM 设置表单（意图解析模型 — 通用 OpenAI 兼容 API）
 // =============================================================================
 
-function DeepSeekSettingsForm({ config, onChange }: {
+function LLMSettingsForm({ config, onChange }: {
   config: {
     apiKey: string
     baseUrl: string
-    chatModel: string
+    model: string
     temperature: string
     maxTokens: string
     timeout: string
@@ -47,7 +47,7 @@ function DeepSeekSettingsForm({ config, onChange }: {
 }) {
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">DeepSeek — 意图理解</div>
+      <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">意图解析模型（LLM）</div>
 
       <div className="flex flex-col gap-[8px] items-start w-full">
         <label className="flex items-center gap-1.5 text-xs font-medium text-foreground tracking-[0.24px]">
@@ -71,15 +71,17 @@ function DeepSeekSettingsForm({ config, onChange }: {
         <Input
           value={config.baseUrl}
           onChange={(e) => onChange('baseUrl', e.target.value)}
+          placeholder="https://api.deepseek.com"
           className="h-10 text-sm bg-background border-input text-foreground w-full max-w-[320px]"
         />
       </div>
 
       <div className="flex flex-col gap-[8px] items-start max-w-[200px]">
-        <label className="text-xs font-medium text-foreground tracking-[0.24px]">对话模型</label>
+        <label className="text-xs font-medium text-foreground tracking-[0.24px]">模型名</label>
         <Input
-          value={config.chatModel}
-          onChange={(e) => onChange('chatModel', e.target.value)}
+          value={config.model}
+          onChange={(e) => onChange('model', e.target.value)}
+          placeholder="deepseek-chat"
           className="h-10 text-sm bg-background border-input text-foreground"
         />
       </div>
@@ -122,14 +124,14 @@ function DeepSeekSettingsForm({ config, onChange }: {
 }
 
 // =============================================================================
-// 组件：智谱设置表单
+// 组件：VLM 设置表单（视觉分析模型 — 通用多模态 API）
 // =============================================================================
 
-function ZhipuSettingsForm({ config, onChange }: {
+function VLMSettingsForm({ config, onChange }: {
   config: {
     apiKey: string
     baseUrl: string
-    visionModel: string
+    model: string
     temperature: string
     maxTokens: string
     timeout: string
@@ -140,7 +142,7 @@ function ZhipuSettingsForm({ config, onChange }: {
 }) {
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">智谱 GLM-4V — 视觉分析</div>
+      <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">视觉分析模型（VLM）</div>
 
       <div className="flex flex-col gap-[8px] items-start w-full">
         <label className="flex items-center gap-1.5 text-xs font-medium text-foreground tracking-[0.24px]">
@@ -164,15 +166,17 @@ function ZhipuSettingsForm({ config, onChange }: {
         <Input
           value={config.baseUrl}
           onChange={(e) => onChange('baseUrl', e.target.value)}
+          placeholder="https://open.bigmodel.cn/api/paas/v4"
           className="h-10 text-sm bg-background border-input text-foreground w-full max-w-[320px]"
         />
       </div>
 
       <div className="flex flex-col gap-[8px] items-start max-w-[200px]">
-        <label className="text-xs font-medium text-foreground tracking-[0.24px]">视觉模型</label>
+        <label className="text-xs font-medium text-foreground tracking-[0.24px]">模型名</label>
         <Input
-          value={config.visionModel}
-          onChange={(e) => onChange('visionModel', e.target.value)}
+          value={config.model}
+          onChange={(e) => onChange('model', e.target.value)}
+          placeholder="glm-4v"
           className="h-10 text-sm bg-background border-input text-foreground"
         />
       </div>
@@ -211,7 +215,7 @@ function ZhipuSettingsForm({ config, onChange }: {
         </div>
       </div>
 
-      {/* 截图参数 */}
+      {/* 截图参数（VLM 专用） */}
       <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase mt-2">截图</div>
       <div className="grid grid-cols-2 gap-4 w-full max-w-[240px]">
         <div className="flex flex-col gap-[8px] items-start">
@@ -330,25 +334,25 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [maxRetries, setMaxRetries] = useState('3')
   const [appScanPages, setAppScanPages] = useState('3')
 
-  // DeepSeek 设置
-  const [dsApiKey, setDsApiKey] = useState('')
-  const [dsBaseUrl, setDsBaseUrl] = useState('https://api.deepseek.com')
-  const [dsChatModel, setDsChatModel] = useState('deepseek-chat')
-  const [dsTemperature, setDsTemperature] = useState('0.1')
-  const [dsMaxTokens, setDsMaxTokens] = useState('4096')
-  const [dsTimeout, setDsTimeout] = useState('30000')
+  // LLM 设置（意图解析模型）
+  const [llmApiKey, setLlmApiKey] = useState('')
+  const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com')
+  const [llmModel, setLlmModel] = useState('deepseek-chat')
+  const [llmTemperature, setLlmTemperature] = useState('0.1')
+  const [llmMaxTokens, setLlmMaxTokens] = useState('4096')
+  const [llmTimeout, setLlmTimeout] = useState('30000')
 
-  // 智谱设置
-  const [zpApiKey, setZpApiKey] = useState('')
-  const [zpBaseUrl, setZpBaseUrl] = useState('https://open.bigmodel.cn/api/paas/v4')
-  const [zpVisionModel, setZpVisionModel] = useState('glm-4v')
-  const [zpTemperature, setZpTemperature] = useState('0.1')
-  const [zpMaxTokens, setZpMaxTokens] = useState('2048')
-  const [zpTimeout, setZpTimeout] = useState('30000')
+  // VLM 设置（视觉分析模型）
+  const [vlmApiKey, setVlmApiKey] = useState('')
+  const [vlmBaseUrl, setVlmBaseUrl] = useState('https://open.bigmodel.cn/api/paas/v4')
+  const [vlmModel, setVlmModel] = useState('glm-4v')
+  const [vlmTemperature, setVlmTemperature] = useState('0.1')
+  const [vlmMaxTokens, setVlmMaxTokens] = useState('2048')
+  const [vlmTimeout, setVlmTimeout] = useState('30000')
 
-  // 截图
-  const [aiMaxWidth, setAiMaxWidth] = useState('1024')
-  const [aiQuality, setAiQuality] = useState('80')
+  // VLM 截图参数
+  const [vlmMaxWidth, setVlmMaxWidth] = useState('1024')
+  const [vlmQuality, setVlmQuality] = useState('80')
 
   // 打开时加载配置
   useEffect(() => {
@@ -364,25 +368,25 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setAppScanPages(String(wf.appScanPages ?? 3))
 
       const ai = cfg.aiAgent || {}
-      const ds = ai.deepseek || {}
-      setDsApiKey(ds.apiKey ?? '')
-      setDsBaseUrl(ds.baseUrl ?? 'https://api.deepseek.com')
-      setDsChatModel(ds.chatModel ?? 'deepseek-chat')
-      setDsTemperature(String(ds.temperature ?? 0.1))
-      setDsMaxTokens(String(ds.maxTokens ?? 4096))
-      setDsTimeout(String(ds.timeout ?? 30000))
+      const llm = ai.llm || {}
+      setLlmApiKey(llm.apiKey ?? '')
+      setLlmBaseUrl(llm.baseUrl ?? 'https://api.deepseek.com')
+      setLlmModel(llm.model ?? 'deepseek-chat')
+      setLlmTemperature(String(llm.temperature ?? 0.1))
+      setLlmMaxTokens(String(llm.maxTokens ?? 4096))
+      setLlmTimeout(String(llm.timeout ?? 30000))
 
-      const zp = ai.zhipu || {}
-      setZpApiKey(zp.apiKey ?? '')
-      setZpBaseUrl(zp.baseUrl ?? 'https://open.bigmodel.cn/api/paas/v4')
-      setZpVisionModel(zp.visionModel ?? 'glm-4v')
-      setZpTemperature(String(zp.temperature ?? 0.1))
-      setZpMaxTokens(String(zp.maxTokens ?? 2048))
-      setZpTimeout(String(zp.timeout ?? 30000))
+      const vlm = ai.vlm || {}
+      setVlmApiKey(vlm.apiKey ?? '')
+      setVlmBaseUrl(vlm.baseUrl ?? 'https://open.bigmodel.cn/api/paas/v4')
+      setVlmModel(vlm.model ?? 'glm-4v')
+      setVlmTemperature(String(vlm.temperature ?? 0.1))
+      setVlmMaxTokens(String(vlm.maxTokens ?? 2048))
+      setVlmTimeout(String(vlm.timeout ?? 30000))
 
-      const sc = ai.screenshot || {}
-      setAiMaxWidth(String(sc.maxWidth ?? 1024))
-      setAiQuality(String(sc.quality ?? 80))
+      const sc = vlm.screenshot || {}
+      setVlmMaxWidth(String(sc.maxWidth ?? 1024))
+      setVlmQuality(String(sc.quality ?? 80))
     }).finally(() => setLoading(false))
   }, [open])
 
@@ -395,27 +399,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }
   }
 
-  const handleDeepSeekChange = (key: string, value: string) => {
+  const handleLLMChange = (key: string, value: string) => {
     switch (key) {
-      case 'apiKey': setDsApiKey(value); break
-      case 'baseUrl': setDsBaseUrl(value); break
-      case 'chatModel': setDsChatModel(value); break
-      case 'temperature': setDsTemperature(value); break
-      case 'maxTokens': setDsMaxTokens(value); break
-      case 'timeout': setDsTimeout(value); break
+      case 'apiKey': setLlmApiKey(value); break
+      case 'baseUrl': setLlmBaseUrl(value); break
+      case 'model': setLlmModel(value); break
+      case 'temperature': setLlmTemperature(value); break
+      case 'maxTokens': setLlmMaxTokens(value); break
+      case 'timeout': setLlmTimeout(value); break
     }
   }
 
-  const handleZhipuChange = (key: string, value: string) => {
+  const handleVLMChange = (key: string, value: string) => {
     switch (key) {
-      case 'apiKey': setZpApiKey(value); break
-      case 'baseUrl': setZpBaseUrl(value); break
-      case 'visionModel': setZpVisionModel(value); break
-      case 'temperature': setZpTemperature(value); break
-      case 'maxTokens': setZpMaxTokens(value); break
-      case 'timeout': setZpTimeout(value); break
-      case 'maxWidth': setAiMaxWidth(value); break
-      case 'quality': setAiQuality(value); break
+      case 'apiKey': setVlmApiKey(value); break
+      case 'baseUrl': setVlmBaseUrl(value); break
+      case 'model': setVlmModel(value); break
+      case 'temperature': setVlmTemperature(value); break
+      case 'maxTokens': setVlmMaxTokens(value); break
+      case 'timeout': setVlmTimeout(value); break
+      case 'maxWidth': setVlmMaxWidth(value); break
+      case 'quality': setVlmQuality(value); break
     }
   }
 
@@ -425,26 +429,25 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       stepInterval: Number(stepInterval) || 0.5,
       maxRetries: Number(maxRetries) || 3,
       aiAgent: {
-        deepseek: {
-          apiKey: dsApiKey,
-          baseUrl: dsBaseUrl,
-          chatModel: dsChatModel,
-          temperature: Number(dsTemperature) || 0.1,
-          maxTokens: Number(dsMaxTokens) || 4096,
-          timeout: Number(dsTimeout) || 30000,
+        llm: {
+          apiKey: llmApiKey,
+          baseUrl: llmBaseUrl,
+          model: llmModel,
+          temperature: Number(llmTemperature) || 0.1,
+          maxTokens: Number(llmMaxTokens) || 4096,
+          timeout: Number(llmTimeout) || 30000,
         },
-        zhipu: {
-          apiKey: zpApiKey,
-          baseUrl: zpBaseUrl,
-          visionModel: zpVisionModel,
-          temperature: Number(zpTemperature) || 0.1,
-          maxTokens: Number(zpMaxTokens) || 2048,
-          timeout: Number(zpTimeout) || 30000,
-        },
-        screenshot: {
-          maxWidth: Number(aiMaxWidth) || 1024,
-          quality: Number(aiQuality) || 80,
-          cacheSize: 3,
+        vlm: {
+          apiKey: vlmApiKey,
+          baseUrl: vlmBaseUrl,
+          model: vlmModel,
+          temperature: Number(vlmTemperature) || 0.1,
+          maxTokens: Number(vlmMaxTokens) || 2048,
+          timeout: Number(vlmTimeout) || 30000,
+          screenshot: {
+            maxWidth: Number(vlmMaxWidth) || 1024,
+            quality: Number(vlmQuality) || 80,
+          },
         },
         workflow: {
           nodeTimeout: 60000,
@@ -507,32 +510,32 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 onChange={handleScriptChange}
               />
             )}
-            {activeTab === 'deepseek' && (
-              <DeepSeekSettingsForm
+            {activeTab === 'llm' && (
+              <LLMSettingsForm
                 config={{
-                  apiKey: dsApiKey,
-                  baseUrl: dsBaseUrl,
-                  chatModel: dsChatModel,
-                  temperature: dsTemperature,
-                  maxTokens: dsMaxTokens,
-                  timeout: dsTimeout,
+                  apiKey: llmApiKey,
+                  baseUrl: llmBaseUrl,
+                  model: llmModel,
+                  temperature: llmTemperature,
+                  maxTokens: llmMaxTokens,
+                  timeout: llmTimeout,
                 }}
-                onChange={handleDeepSeekChange}
+                onChange={handleLLMChange}
               />
             )}
-            {activeTab === 'zhipu' && (
-              <ZhipuSettingsForm
+            {activeTab === 'vlm' && (
+              <VLMSettingsForm
                 config={{
-                  apiKey: zpApiKey,
-                  baseUrl: zpBaseUrl,
-                  visionModel: zpVisionModel,
-                  temperature: zpTemperature,
-                  maxTokens: zpMaxTokens,
-                  timeout: zpTimeout,
-                  maxWidth: aiMaxWidth,
-                  quality: aiQuality,
+                  apiKey: vlmApiKey,
+                  baseUrl: vlmBaseUrl,
+                  model: vlmModel,
+                  temperature: vlmTemperature,
+                  maxTokens: vlmMaxTokens,
+                  timeout: vlmTimeout,
+                  maxWidth: vlmMaxWidth,
+                  quality: vlmQuality,
                 }}
-                onChange={handleZhipuChange}
+                onChange={handleVLMChange}
               />
             )}
           </main>

@@ -45,18 +45,21 @@ const INTENT_PARSER_PROMPT = `你是一个手机自动化操作指令解析器�
 
 请严格按 JSON 格式返回，不要额外解释。`
 
-export class DeepSeekService {
+export class LLMService {
   private _chatModel: ChatOpenAI | null = null
   private config = loadConfig()
 
   private getChatModel(): ChatOpenAI {
     if (!this._chatModel) {
-      const cfg = this.config.aiAgent!.deepseek
-      if (!cfg.apiKey) throw new Error('请先配置 DeepSeek API Key')
+      const cfg = this.config.aiAgent!.llm
+      if (!cfg.apiKey) throw new Error('请先配置 LLM API Key（意图解析）')
       this._chatModel = new ChatOpenAI({
-        apiKey: cfg.apiKey, model: cfg.chatModel,
-        temperature: cfg.temperature, maxTokens: cfg.maxTokens,
-        timeout: cfg.timeout, configuration: { baseURL: cfg.baseUrl },
+        apiKey: cfg.apiKey,
+        model: cfg.model,
+        temperature: cfg.temperature,
+        maxTokens: cfg.maxTokens,
+        timeout: cfg.timeout,
+        configuration: { baseURL: cfg.baseUrl },
       })
     }
     return this._chatModel

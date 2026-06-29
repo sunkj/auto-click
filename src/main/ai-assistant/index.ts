@@ -5,7 +5,7 @@
  */
 import { ipcMain, BrowserWindow } from 'electron'
 import { executeAiWorkflow } from './execute-ai-workflow'
-import { loadConfig, getDeepSeekKey } from '../config'
+import { loadConfig, getLLMKey } from '../config'
 import type { StatusPayload, AgentError, AgentState } from './types'
 
 /** IPC 通道常量 */
@@ -59,11 +59,11 @@ export function resetCancelFlag(): void {
 
 export function registerAiAgentHandlers(): void {
   ipcMain.handle(AI_AGENT_CHANNELS.SUBMIT, async (_event, payload: { input: string }) => {
-    const apiKey = getDeepSeekKey()
+    const apiKey = getLLMKey()
     if (!apiKey) {
       send(AI_AGENT_CHANNELS.ERROR, {
         code: 'LLM_CALL_FAILED',
-        message: '请先配置 DeepSeek API Key',
+        message: '请先配置 LLM API Key（意图解析）',
         retryable: false,
       } as AgentError)
       return { success: false, error: 'API Key 未配置' }
