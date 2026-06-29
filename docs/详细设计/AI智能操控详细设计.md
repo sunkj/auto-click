@@ -1,10 +1,11 @@
-# AutoClick - AI智能操控详细设计（V2.0 — 与实际实现同步）
+# AutoClick - AI智能操控详细设计（V2.1 — 与实际实现同步）
 
 | **文档版本** | **修改日期** | **修改人** | **修改内容** |
 | :--- | :--- | :--- | :--- |
 | V1.0 | 2026-06-23 | AI Assistant | 初始创建，基于需求文档3.7节"AI智能操控"展开详细设计 |
 | V1.1 | 2026-06-23 | AI Assistant | 移除人工确认节点，指令生成后立即执行；将ADB直接调用改为转换为脚本引擎步骤并调用ScriptEngine执行 |
 | V2.0 | 2026-06-27 | AI Assistant | 重大重构：拆分ai-agent（纯解析）与ai-assistant（编排执行）；新增check_text文本检测节点、动态工具（已录制点击）、多步骤sequence支持；移除visual-analysis/coordinate-mapper节点 |
+| V2.1 | 2026-06-29 | AI Assistant | check_text AI动作新增映射为 checkText EngineStep；新增独立 checkText 脚本步骤类型说明 |
 
 ---
 
@@ -352,14 +353,14 @@ interface ScreenCheckResult {
 | keyEvent | `click` | `{ keyEvent: 'KEYCODE_...' }` |
 | home | `click` | `{ keyEvent: 'KEYCODE_HOME' }` |
 | openApp | `click` | 通过 UI Automator 查找 app 图标点击 |
-| check_text | — | 不生成 EngineStep，直接返回检测结果 |
+| check_text | `checkText` | `{ text: string }` — 生成独立 checkText 步骤，直接由 StepExecutor 截图+VLM检测 |
 | sequence | 多个 EngineStep | 按顺序组装为步骤数组 |
 
 3. 每个步骤设置合理的 `delay`（默认步骤间隔来自配置）
 
 ```typescript
 interface EngineStep {
-  type: 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai';
+  type: 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText';
   data: Record<string, any>;
   delay?: number;
 }
@@ -372,7 +373,7 @@ interface EngineStep {
 | "点击微信" (tap) | `[{ type: 'click', data: { x, y }, delay: 0.5 }]` |
 | "滑动到下一屏" (swipe left) | `[{ type: 'swipe', data: { direction: 'left', distance: 600 }, delay: 0.5 }]` |
 | "返回桌面" (keyEvent HOME) | `[{ type: 'click', data: { keyEvent: 'KEYCODE_HOME' }, delay: 0.5 }]` |
-| "检查屏幕是否包含'发送'" (check_text) | `[]`（结果在 screenCheckResult 中返回） |
+| "检查屏幕是否包含'发送'" (check_text) | `[{ type: 'checkText', data: { text: '发送' }, delay: 0 }]`（截图+VLM检测，结果写入 Context） |
 | "打开微信，进入陈晓蓓聊天" (sequence) | `[{ type: 'click', data: { ... } }, { type: 'click', data: { ... } }]` |
 
 ---
