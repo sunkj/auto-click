@@ -327,6 +327,7 @@ export function StepPanel() {
                             {(step as any).condition && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600/80 bg-amber-50 dark:text-amber-400/80 dark:bg-amber-400/10 px-1 py-0.5 rounded">
                                 ⚡ {((step as any).condition as any).key}={((step as any).condition as any).value}
+                                <span className="opacity-60 ml-0.5">→ {((step as any).condition as any).onMatch === 'stop' ? '终止' : '跳过'}</span>
                               </span>
                             )}
                             {(step as any).contextOutput && (
