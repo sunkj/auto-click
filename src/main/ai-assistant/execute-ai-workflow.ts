@@ -46,7 +46,9 @@ export async function executeAiWorkflow(
     engineSteps: [],
   }
 
-  const { engineSteps, intent } = await parseGraph.invoke(parseState)
+  const parseResult = await parseGraph.invoke(parseState) as any
+  let engineSteps: EngineStep[] = parseResult.engineSteps || []
+  const intent: IntentResult | null = parseResult.intent || null
 
   // 打印意图解析结果
   console.log(`[AiWorkflow] 意图解析完成:`)
@@ -62,7 +64,15 @@ export async function executeAiWorkflow(
   console.log(`[AiWorkflow] 转换结果: ${engineSteps?.length || 0} 个步骤`)
 
   if (!engineSteps || engineSteps.length === 0) {
-    return { success: true, engineSteps: [], duration: 0 }
+    // ── tap 动作无坐标时的兜底：生成 visionClick 步骤 ──
+    if (intent?.action === 'tap' && intent.target) {
+      console.log(`[AiWorkflow] tap "${intent.target}" 无坐标，生成 visionClick 步骤`)
+      engineSteps = [{ type: 'visionClick', data: { target: intent.target, description: `点击 ${intent.target}` }, delay: 0.5 }]
+    }
+
+    if (!engineSteps || engineSteps.length === 0) {
+      return { success: true, engineSteps: [], duration: 0 }
+    }
   }
 
   // 执行 steps（使用可变的步骤列表，运行时可能插入分支步骤）

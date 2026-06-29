@@ -7,6 +7,7 @@ import { loadConfig } from '../config'
 import { createParseGraph } from '../ai-agent/graph'
 import { captureScreenshot } from '../ai-agent/tools/screenshot'
 import { checkScreenText } from '../ai-agent/tools/text-check'
+import { checkTextWithVLM } from '../ai-agent/services/vlm-service'
 import { convertToEngineSteps } from '../ai-agent/tools/step-converter'
 
 // =============================================================================
@@ -110,6 +111,9 @@ export class StepExecutor {
           break
         case 'checkText':
           await this.executeCheckText(resolvedData, context)
+          break
+        case 'visionClick':
+          await this.executeVisionClick(resolvedData, context.serial)
           break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
@@ -343,6 +347,39 @@ export class StepExecutor {
     }
 
     throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未找到应用 "${appName}"`)
+  }
+
+  /** 执行图像识别点击 — 截图 → VLM 定位元素 → 点击 */
+  private async executeVisionClick(data: Record<string, any>, serial: string): Promise<void> {
+    const target = String(data.target || '')
+    if (!target) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '目标描述不能为空')
+    }
+
+    console.log(`[StepExecutor]   ▶ 图像识别点击: "${target}"`)
+
+    // 1. 截图
+    const screenshot = await captureScreenshot(serial)
+    const { originalWidth, originalHeight } = screenshot
+
+    // 2. 调用 VLM 定位元素（归一化坐标）
+    const vlmPrompt = `在屏幕截图中找到"${target}"的位置。只返回JSON：如果找到返回{"found":true,"x":归一化X,"y":归一化Y}（归一化坐标范围0~1，x=0是左边缘，y=0是上边缘），否则返回{"found":false}。不要解释。`
+    const raw = await checkTextWithVLM(screenshot.base64, vlmPrompt)
+    const m = raw.match(/\{[\s\S]*?\}/)
+    if (!m) throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `VLM 未返回有效坐标`)
+
+    const r = JSON.parse(m[0])
+    if (!r.found || typeof r.x !== 'number' || typeof r.y !== 'number') {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `未在屏幕上找到 "${target}"`)
+    }
+
+    // 3. 归一化坐标 → 设备坐标
+    const deviceX = Math.round(r.x * originalWidth)
+    const deviceY = Math.round(r.y * originalHeight)
+    console.log(`[StepExecutor]     识别结果: 归一化(${r.x}, ${r.y}) → 设备(${deviceX}, ${deviceY})`)
+
+    // 4. 点击
+    await adbExec.tap(serial, deviceX, deviceY)
   }
 
   /** 执行屏幕文本检测 — 截图 → VLM 检测 → 匹配时写入上下文 */
