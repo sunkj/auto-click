@@ -26,17 +26,28 @@ export class ScriptRepository {
   }
 
   async findById(id: string): Promise<ScriptEntity | null> {
-    return this.repo.findOne({
+    const script = await this.repo.findOne({
       where: { id },
       relations: ['steps'],
     })
+    if (script?.steps) {
+      script.steps.sort((a, b) => a.stepIndex - b.stepIndex)
+    }
+    return script
   }
 
   async findAll(): Promise<ScriptEntity[]> {
-    return this.repo.find({
+    const scripts = await this.repo.find({
       order: { sortOrder: 'ASC' },
       relations: ['steps'],
     })
+    // 对每个脚本的步骤按 stepIndex 排序（TypeORM 的 relations 不保证有序）
+    for (const script of scripts) {
+      if (script.steps) {
+        script.steps.sort((a, b) => a.stepIndex - b.stepIndex)
+      }
+    }
+    return scripts
   }
 
   async update(id: string, updates: UpdateScriptParams): Promise<ScriptEntity | null> {
