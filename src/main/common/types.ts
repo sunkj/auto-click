@@ -9,7 +9,7 @@
 // 步骤类型 & 引擎步骤
 // =============================================================================
 
-export type StepType = 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick'
+export type StepType = 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick' | 'wait'
 
 /** 脚本步骤（引擎内部使用的标准格式） */
 export interface EngineStep {
@@ -83,6 +83,12 @@ export interface VisionClickStepData {
   description?: string
 }
 
+/** 等待步骤参数 */
+export interface WaitStepData {
+  duration: number
+  description?: string
+}
+
 export type StepData =
   | ClickStepData
   | TypeStepData
@@ -94,6 +100,7 @@ export type StepData =
   | AiStepData
   | CheckTextStepData
   | VisionClickStepData
+  | WaitStepData
 
 /** 脚本类型 */
 export type ScriptType = 'folder' | 'script'

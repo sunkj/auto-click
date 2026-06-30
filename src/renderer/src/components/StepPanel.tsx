@@ -24,6 +24,7 @@ import {
   Brain,
   ScanSearch,
   ScanEye,
+  Hourglass,
   X,
 } from 'lucide-react'
 import { NewStepDialog } from '@/components/NewStepDialog'
@@ -42,6 +43,7 @@ const stepLabels: Record<string, string> = {
   ai: 'AI',
   checkText: '文本检测',
   visionClick: '识别点击',
+  wait: '等待',
 }
 
 const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -55,6 +57,7 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   ai: Brain,
   checkText: ScanSearch,
   visionClick: ScanEye,
+  wait: Hourglass,
 }
 
 export function StepPanel() {

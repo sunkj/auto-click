@@ -16,9 +16,10 @@ import {
   Brain,
   ScanSearch,
   ScanEye,
+  Hourglass,
 } from 'lucide-react'
 
-type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick'
+type StepType = 'click' | 'type' | 'swipe' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick' | 'wait'
 
 interface NewStepDialogProps {
   open: boolean
@@ -36,6 +37,7 @@ const stepTypeMeta: Record<StepType, { label: string; icon: React.ComponentType<
   ai: { label: 'AI', icon: Brain, color: 'text-cyan-500' },
   checkText: { label: '文本检测', icon: ScanSearch, color: 'text-rose-500' },
   visionClick: { label: '识别点击', icon: ScanEye, color: 'text-violet-500' },
+  wait: { label: '等待', icon: Hourglass, color: 'text-amber-500' },
 }
 
 function paramsFromStep(step: Step): Record<string, string> {
@@ -48,6 +50,7 @@ function paramsFromStep(step: Step): Record<string, string> {
   if (!p.y) p.y = ''
   if (!p.duration) p.duration = ''
   if (!p.aiPrompt) p.aiPrompt = ''
+  if (!p.waitDuration) p.waitDuration = ''
   return p
 }
 
@@ -61,6 +64,7 @@ const typeLabels: Record<StepType, string> = {
   ai: 'AI',
   checkText: '文本检测',
   visionClick: '识别点击',
+  wait: '等待',
 }
 
 export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogProps) {
@@ -99,7 +103,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     } else {
       setStepType('click')
       setStepName('点击')
-      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '', checkText: '', visionTarget: '' })
+      setParams({ x: '', y: '', description: '', text: '', direction: 'Up', duration: '', pressDuration: '1.0', appName: '', aiPrompt: '', checkText: '', visionTarget: '', waitDuration: '' })
       setConditionKey(''); setConditionValue(''); setConditionOnMatch('skip')
       setContextKey(''); setContextValue('')
     }
@@ -160,7 +164,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
     onOpenChange(false)
   }
 
-  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai', 'checkText', 'visionClick']
+  const types: StepType[] = ['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai', 'checkText', 'visionClick', 'wait']
 
   // 从录制记录选择
   const [showRecordSelector, setShowRecordSelector] = useState(false)
@@ -360,6 +364,36 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
             </div>
           </div>
         )
+      case 'wait':
+        return (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">等待时长（秒）</label>
+              <Input
+                type="number"
+                min="0.1"
+                step="0.1"
+                placeholder="3"
+                value={params.waitDuration || ''}
+                onChange={(e) => handleParamChange('waitDuration', e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">原因说明（可选）</label>
+              <Input
+                placeholder="如：等待页面加载"
+                value={params.description || ''}
+                onChange={(e) => handleParamChange('description', e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-700 leading-relaxed">
+              ⏳ 执行时将暂停指定时长后再继续执行下一步。
+              支持小数，如 0.5 表示 500 毫秒。
+            </div>
+          </div>
+        )
     }
   }
 
@@ -397,63 +431,65 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
         })}
       </div>
 
-      {/* Step Name */}
-      <div className="space-y-1 mb-1">
-        <label className="text-xs text-muted-foreground">步骤名称</label>
-        <Input
-          placeholder="输入步骤名称..."
-          value={stepName}
-          onChange={(e) => setStepName(e.target.value)}
-          className="h-8 text-sm"
-        />
-      </div>
+      {/* Scrollable content area */}
+      <div className="max-h-[400px] overflow-y-auto pr-1 space-y-3">
+        {/* Step Name */}
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">步骤名称</label>
+          <Input
+            placeholder="输入步骤名称..."
+            value={stepName}
+            onChange={(e) => setStepName(e.target.value)}
+            className="h-8 text-sm"
+          />
+        </div>
 
-      {/* Parameters Form */}
-      {renderParams()}
+        {/* Parameters Form */}
+        {renderParams()}
 
-      {/* ── 前置条件（折叠） ── */}
-      <details className="group border border-border rounded-md mt-3">
-        <summary className="flex items-center gap-2 px-3 py-[10px] text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
-          <span className="text-amber-500">⚡</span>
-          前置条件
-          <span className="ml-auto text-[10px] opacity-50 group-open:opacity-100">{(conditionKey ? '已设置' : '可选')}</span>
-        </summary>
-        <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <label className="text-[10px] text-muted-foreground">选择 Key</label>
+        {/* ── 前置条件（折叠） ── */}
+        <details className="group border border-border rounded-md">
+          <summary className="flex items-center gap-2 px-3 py-[10px] text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
+            <span className="text-amber-500">⚡</span>
+            前置条件
+            <span className="ml-auto text-[10px] opacity-50 group-open:opacity-100">{(conditionKey ? '已设置' : '可选')}</span>
+          </summary>
+          <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">选择 Key</label>
+                <select
+                  value={conditionKey}
+                  onChange={(e) => setConditionKey(e.target.value)}
+                  className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground w-full"
+                >
+                  <option value="">-- 请选择 --</option>
+                  {contextKeyOptions.map((key) => (
+                    <option key={key} value={key}>{key}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground">等于值</label>
+                <Input placeholder="比较值" value={conditionValue} onChange={(e) => setConditionValue(e.target.value)} className="h-7 text-xs" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-muted-foreground shrink-0">满足时</label>
               <select
-                value={conditionKey}
-                onChange={(e) => setConditionKey(e.target.value)}
-                className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground w-full"
+                value={conditionOnMatch}
+                onChange={(e) => setConditionOnMatch(e.target.value as 'skip' | 'stop')}
+                className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground"
               >
-                <option value="">-- 请选择 --</option>
-                {contextKeyOptions.map((key) => (
-                  <option key={key} value={key}>{key}</option>
-                ))}
+                <option value="skip">跳过当前步骤</option>
+                <option value="stop">停止脚本</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] text-muted-foreground">等于值</label>
-              <Input placeholder="比较值" value={conditionValue} onChange={(e) => setConditionValue(e.target.value)} className="h-7 text-xs" />
-            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-muted-foreground shrink-0">满足时</label>
-            <select
-              value={conditionOnMatch}
-              onChange={(e) => setConditionOnMatch(e.target.value as 'skip' | 'stop')}
-              className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-            >
-              <option value="skip">跳过当前步骤</option>
-              <option value="stop">停止脚本</option>
-            </select>
-          </div>
-        </div>
-      </details>
+        </details>
 
-      {/* ── 写入 Context（折叠） ── */}
-      <details className="group border border-border rounded-md mt-2">
+        {/* ── 写入 Context（折叠） ── */}
+        <details className="group border border-border rounded-md">
         <summary className="flex items-center gap-2 px-3 py-[10px] text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
           <span className="text-blue-500">📝</span>
           写入上下文
@@ -481,6 +517,7 @@ export function NewStepDialog({ open, onOpenChange, editStep }: NewStepDialogPro
           </div>
         </div>
       </details>
+      </div>
 
       <DialogFooter>
         <Button variant="outline" size="sm" onClick={handleCancel}>

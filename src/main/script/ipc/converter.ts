@@ -17,6 +17,7 @@ import type {
   AiStepData,
   CheckTextStepData,
   VisionClickStepData,
+  WaitStepData,
   CreateStepParams,
 } from '../types'
 
@@ -27,7 +28,7 @@ import type {
 export interface RendererStep {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick' | 'wait'
   params: Record<string, string>
   description: string
   name: string
@@ -121,6 +122,13 @@ function flattenStepData(type: string, data: StepData): {
       description = d.description ?? `识别点击 "${d.target}"`
       break
     }
+    case 'wait': {
+      const d = data as WaitStepData
+      params.waitDuration = String(d.duration)
+      params.description = d.description ?? ''
+      description = d.description ?? `等待 ${d.duration}s`
+      break
+    }
   }
 
   return { params, description }
@@ -210,6 +218,11 @@ function rendererParamsToStepData(type: string, params: Record<string, string>):
         target: params.visionTarget || '',
         description: params.description || undefined,
       } as VisionClickStepData
+    case 'wait':
+      return {
+        duration: Number(params.waitDuration) || 0,
+        description: params.description || undefined,
+      } as WaitStepData
     default:
       throw new Error(`未知的步骤类型: ${type}`)
   }

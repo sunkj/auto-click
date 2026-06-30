@@ -103,6 +103,9 @@ export class StepExecutor {
         case 'home':
           await this.executeHome(context.serial)
           break
+        case 'wait':
+          await this.executeWait(resolvedData)
+          break
         case 'ai':
           await this.executeAi(resolvedData, context)
           break
@@ -213,6 +216,23 @@ export class StepExecutor {
   /** 执行回主屏幕操作 */
   private async executeHome(serial: string): Promise<void> {
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
+  }
+
+  /** 执行等待步骤 — 通过延时等待指定时长 */
+  private async executeWait(data: Record<string, any>): Promise<void> {
+    const durationSec = Number(data.duration) || 0
+    if (durationSec <= 0) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '等待时长必须大于 0')
+    }
+
+    const durationMs = Math.round(durationSec * 1000)
+    console.log(`[StepExecutor] ⏳ 等待 ${durationSec} 秒...`)
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, durationMs)
+    })
+
+    console.log(`[StepExecutor] ✔ 等待完成 (${durationSec} 秒)`)
   }
 
   /** 执行 AI 步骤 — 通过 ai-agent 子图解析 → 转为 engine steps → 逐条执行（含运行时check_text检查点） */

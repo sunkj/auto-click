@@ -9,7 +9,7 @@ import { showToast } from '@/components/ui/toast'
 export interface Step {
   id: string
   index: number
-  type: 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick'
+  type: 'click' | 'type' | 'swipe' | 'script' | 'longpress' | 'home' | 'openApp' | 'ai' | 'checkText' | 'visionClick' | 'wait'
   params: Record<string, string>
   description: string
   name: string

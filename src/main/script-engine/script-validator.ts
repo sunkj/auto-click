@@ -19,7 +19,7 @@ export class ScriptValidator {
     if (!step || typeof step !== 'object') {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `步骤 ${index} 格式无效`, index)
     }
-    if (!['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai', 'checkText', 'visionClick'].includes(step.type)) {
+    if (!['click', 'type', 'swipe', 'longpress', 'home', 'openApp', 'ai', 'checkText', 'visionClick', 'wait'].includes(step.type)) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `步骤 ${index} 类型 "${step.type}" 不支持`, index)
     }
     this.validateData(step.type, step.data, index)
@@ -68,6 +68,11 @@ export class ScriptValidator {
       case 'visionClick':
         if (!data.target) {
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `步骤 ${index} 目标描述不能为空`, index)
+        }
+        break
+      case 'wait':
+        if (typeof data.duration !== 'number' || data.duration <= 0) {
+          throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `步骤 ${index} 等待时长必须大于 0`, index)
         }
         break
     }
