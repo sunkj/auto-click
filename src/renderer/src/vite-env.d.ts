@@ -187,5 +187,22 @@ interface Window {
       restoreSize: () => Promise<IpcResult<unknown>>
     }
     aiAgent?: ElectronAiAgentAPI
+    scheduler?: {
+      list: () => Promise<IpcResult<{ schedules: any[]; schedulerEnabled: boolean }>>
+      create: (params: {
+        scriptId: string
+        scriptName: string
+        cycle: 'minute' | 'hour' | 'day'
+        minuteInterval?: number
+        hourInterval?: number
+        dayTime?: string
+      }) => Promise<IpcResult<any>>
+      update: (id: string, updates: Record<string, unknown>) => Promise<IpcResult<any>>
+      delete: (id: string) => Promise<IpcResult<boolean>>
+      toggle: (id: string, enabled: boolean) => Promise<IpcResult<any>>
+      toggleAll: (enabled: boolean) => Promise<IpcResult<{ enabled: boolean }>>
+      onStatusUpdate: (callback: (schedule: any) => void) => () => void
+      onSelectScript: (callback: (scriptId: string) => void) => () => void
+    }
   }
 }

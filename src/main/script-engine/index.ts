@@ -18,6 +18,10 @@ export const ENGINE_CHANNELS = {
 
 let engine: ScriptEngine | null = null
 
+export function getEngine(): ScriptEngine | null {
+  return engine
+}
+
 export function registerEngineHandlers(): void {
   const scriptService = new ScriptService()
   engine = new ScriptEngine(scriptService)

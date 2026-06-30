@@ -275,6 +275,50 @@ const aiAgentAPI = {
 }
 
 // =============================================================================
+// 定时任务 Scheduler API
+// =============================================================================
+
+const SCHEDULER = {
+  LIST: 'scheduler:list',
+  CREATE: 'scheduler:create',
+  UPDATE: 'scheduler:update',
+  DELETE: 'scheduler:delete',
+  TOGGLE: 'scheduler:toggle',
+  TOGGLE_ALL: 'scheduler:toggleAll',
+  STATUS_UPDATE: 'scheduler:statusUpdate',
+}
+
+const schedulerAPI = {
+  list: () => ipcRenderer.invoke(SCHEDULER.LIST),
+  create: (params: {
+    scriptId: string
+    scriptName: string
+    cycle: 'minute' | 'hour' | 'day'
+    minuteInterval?: number
+    hourInterval?: number
+    dayTime?: string
+  }) => ipcRenderer.invoke(SCHEDULER.CREATE, params),
+  update: (id: string, updates: Record<string, unknown>) =>
+    ipcRenderer.invoke(SCHEDULER.UPDATE, { id, updates }),
+  delete: (id: string) => ipcRenderer.invoke(SCHEDULER.DELETE, id),
+  toggle: (id: string, enabled: boolean) =>
+    ipcRenderer.invoke(SCHEDULER.TOGGLE, { id, enabled }),
+  toggleAll: (enabled: boolean) =>
+    ipcRenderer.invoke(SCHEDULER.TOGGLE_ALL, { enabled }),
+
+  onStatusUpdate: (callback: (schedule: any) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on(SCHEDULER.STATUS_UPDATE, handler)
+    return () => ipcRenderer.removeListener(SCHEDULER.STATUS_UPDATE, handler)
+  },
+  onSelectScript: (callback: (scriptId: string) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: any) => callback(data)
+    ipcRenderer.on('scheduler:selectScript', handler)
+    return () => ipcRenderer.removeListener('scheduler:selectScript', handler)
+  },
+}
+
+// =============================================================================
 // 暴露安全 API 到渲染进程
 // =============================================================================
 
@@ -287,4 +331,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   window: windowAPI,
   aiAgent: aiAgentAPI,
   recordedClick: recordedClickAPI,
+  scheduler: schedulerAPI,
 })

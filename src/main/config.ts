@@ -21,6 +21,8 @@ export interface LLMConfig {
   timeout: number
 }
 
+import type { ScheduleConfig } from './scheduler/types'
+
 /** VLM 模型配置（视觉分析）— 兼容多模态 API */
 export interface VLMConfig {
   apiKey: string
@@ -86,10 +88,12 @@ const DEFAULT_AI_CONFIG: AiAgentConfig = {
 // =============================================================================
 
 export interface AppConfig {
-  scriptTimeout: number   // 脚本超时（秒）
-  stepInterval: number    // 步骤执行间隔（秒）
-  maxRetries: number      // 最大重试次数
-  aiAgent?: AiAgentConfig // AI Agent 配置
+  scriptTimeout: number     // 脚本超时（秒）
+  stepInterval: number      // 步骤执行间隔（秒）
+  maxRetries: number        // 最大重试次数
+  aiAgent?: AiAgentConfig   // AI Agent 配置
+  schedulerEnabled: boolean // 定时任务总开关
+  schedules: ScheduleConfig[]  // 定时任务列表
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -97,6 +101,8 @@ const DEFAULT_CONFIG: AppConfig = {
   stepInterval: 3,
   maxRetries: 3,
   aiAgent: { ...DEFAULT_AI_CONFIG },
+  schedulerEnabled: false,
+  schedules: [],
 }
 
 function getConfigPath(): string {

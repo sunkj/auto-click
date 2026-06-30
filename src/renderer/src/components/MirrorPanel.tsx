@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useSchedulerStore } from '@/stores/schedulerStore'
+import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +15,7 @@ import {
   Wifi,
   ArrowUpDown,
   Crosshair,
+  Clock,
   PanelLeftClose,
   Minimize2,
   Maximize2,
@@ -69,6 +72,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
   // 连接后过渡：成功后继续 loading 3 秒，再隐藏遮盖层露出投屏
   const [hideOverlay, setHideOverlay] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const prevStatusRef = useRef(status)
 
@@ -265,9 +269,11 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             {!isConnected && (
               <Badge variant="outline" className="h-5 text-[10px] font-normal text-muted-foreground/50">未连接</Badge>
             )}
+            <SchedulerStatusIndicator onClick={() => setScheduleOpen(true)} />
 
           </div>
         )}
+        <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
       </div>
 
       {/* Content Area — 投屏在底层，遮盖层在顶层 */}
@@ -471,5 +477,31 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
         </div>
       )}
     </main>
+  )
+}
+
+/** 定时任务状态指示器 */
+function SchedulerStatusIndicator({ onClick }: { onClick: () => void }) {
+  const { schedules, schedulerEnabled, loadSchedules } = useSchedulerStore()
+  const activeCount = schedulerEnabled ? schedules.filter((s) => s.enabled).length : 0
+  const hasActive = activeCount > 0
+
+  useEffect(() => { loadSchedules() }, [loadSchedules])
+
+  if (!hasActive && schedulerEnabled) return null
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors ml-2 group"
+      title="定时任务"
+    >
+      <Clock className={`h-3 w-3 ${schedulerEnabled ? 'animate-scheduler-pulse' : ''}`} />
+      <span>
+        {schedulerEnabled
+          ? `${activeCount} 个定时任务`
+          : '定时任务已暂停'}
+      </span>
+    </button>
   )
 }

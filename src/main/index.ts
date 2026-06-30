@@ -2,9 +2,10 @@ import { app, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import path from 'path'
 import { registerScriptHandlers } from './script'
 import { registerScrcpyHandlers } from './screen-mirror'
-import { registerEngineHandlers } from './script-engine'
+import { registerEngineHandlers, getEngine } from './script-engine'
 import { registerAiAgentHandlers } from './ai-assistant'
 import { registerRecordedClickHandlers } from './record-script'
+import { registerSchedulerHandlers, getSchedulerEngine, setScriptEngine } from './scheduler'
 import { loadConfig, saveConfig } from './config'
 
 const isDev = !app.isPackaged
@@ -96,13 +97,24 @@ app.whenReady().then(() => {
   registerScriptHandlers()
   registerScrcpyHandlers()
   registerEngineHandlers()
+  // scheduler 共享主 engine 实例，避免多个 ScriptEngine 冲突
+  const mainEngine = getEngine()
+  if (mainEngine) setScriptEngine(mainEngine)
+
   registerAiAgentHandlers()
   registerRecordedClickHandlers()
+  registerSchedulerHandlers()
   // 配置读写 IPC
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config) => { saveConfig(config); return { success: true } })
 
   createWindow()
+
+  // 启动定时任务调度器
+  const engine = getSchedulerEngine()
+  if (engine) {
+    engine.start()
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

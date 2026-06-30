@@ -11,7 +11,7 @@ const DialogContext = React.createContext<DialogContextType>({
   onOpenChange: () => {},
 })
 
-function Dialog({ open, onOpenChange, children, className }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode; className?: string }) {
+function Dialog({ open, onOpenChange, children, className, closeOnBackdrop = true }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode; className?: string; closeOnBackdrop?: boolean }) {
   if (!open) return null
   return (
     <DialogContext.Provider value={{ open, onOpenChange }}>
@@ -19,7 +19,7 @@ function Dialog({ open, onOpenChange, children, className }: { open: boolean; on
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => onOpenChange(false)}
+          onClick={() => closeOnBackdrop && onOpenChange(false)}
         />
         {/* Dialog Content */}
         <div className={cn('relative z-50 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg animate-in fade-in-0 zoom-in-95', className)}>
