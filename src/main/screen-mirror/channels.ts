@@ -11,6 +11,8 @@ export const SMC = {
   BACK: 'scrcpy:back',
   HOME: 'scrcpy:home',
   FRAME: 'scrcpy:frame',
+  AUDIO_CONFIG: 'scrcpy:audioConfig',
+  AUDIO_FRAME: 'scrcpy:audioFrame',
   CONNECTED: 'scrcpy:connected',
   DISCONNECTED: 'scrcpy:disconnected',
   ERROR: 'scrcpy:error',

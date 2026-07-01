@@ -80,7 +80,7 @@ interface FramePayload {
 interface ElectronScreenMirrorAPI {
   getDevices: () => Promise<IpcResult<Array<{ serial: string; model: string; resolution: string }>>>
   getStatus: () => Promise<IpcResult<{ status: string; serial: string | null }>>
-  connect: (serial?: string) => Promise<IpcResult<{ serial: string; model: string; resolution: string }>>
+  connect: (serial?: string, audioEnabled?: boolean) => Promise<IpcResult<{ serial: string; model: string; resolution: string }>>
   disconnect: () => Promise<IpcResult<void>>
   tap: (x: number, y: number) => Promise<IpcResult<void>>
   swipe: (x1: number, y1: number, x2: number, y2: number, duration?: number) => Promise<IpcResult<void>>
@@ -94,6 +94,8 @@ interface ElectronScreenMirrorAPI {
   onConnected: (callback: (status: string) => void) => () => void
   onDisconnected: (callback: () => void) => () => void
   onError: (callback: (error: string) => void) => () => void
+  onAudioConfig: (callback: (data: { data: string }) => void) => () => void
+  onAudioFrame: (callback: (data: { data: string; pts?: number }) => void) => () => void
 }
 
 // =============================================================================

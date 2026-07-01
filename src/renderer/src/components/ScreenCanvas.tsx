@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { showToast } from '@/components/ui/toast'
 
 interface ScreenCanvasProps {
   isConnected: boolean
@@ -138,6 +139,213 @@ export function ScreenCanvas({ isConnected, deviceWidth, deviceHeight, isMinimiz
     const unsubError = api.onError((msg) => console.error('[ScreenCanvas] 流错误:', msg))
 
     return () => { unsubFrame(); unsubError() }
+  }, [])
+
+  // ===========================================================================
+  // 音频流播放（Opus → WebCodecs AudioDecoder → AudioContext）
+  // ===========================================================================
+  useEffect(() => {
+    const api = window.electronAPI?.screenMirror
+    if (!api) return
+
+    let audioCtx: AudioContext | null = null
+    let audioDecoder: AudioDecoder | null = null
+    let isAudioActive = false
+
+    // 待播放队列
+    const pendingFrames: AudioData[] = []
+
+    // 基于 AudioContext.currentTime 的精确调度，消除传统 onended 间隙
+    let nextPlayTime = 0
+    let scheduledCount = 0
+
+    /** 将 AudioData 帧的数据拷贝到 AudioBuffer 的指定偏移位置 */
+    function copyFrameToBuffer(frame: AudioData, audioBuffer: AudioBuffer, offset: number): number {
+      const numChannels = frame.numberOfChannels
+      const fmt = frame.format
+
+      if (fmt === 'f32-planar') {
+        const planeBytes = frame.allocationSize({ planeIndex: 0 })
+        const samplesPerPlane = planeBytes / 4
+        const pcmLeft = new Float32Array(samplesPerPlane)
+        frame.copyTo(pcmLeft, { planeIndex: 0, frameOffset: 0, frameCount: frame.numberOfFrames })
+        audioBuffer.getChannelData(0).set(pcmLeft, offset)
+        if (numChannels > 1) {
+          const pcmRight = new Float32Array(samplesPerPlane)
+          frame.copyTo(pcmRight, { planeIndex: 1, frameOffset: 0, frameCount: frame.numberOfFrames })
+          audioBuffer.getChannelData(1).set(pcmRight, offset)
+        }
+      } else if (fmt === 's16') {
+        const totalBytes = frame.allocationSize({ planeIndex: 0 })
+        const totalSamples = totalBytes / 2
+        const intData = new Int16Array(totalSamples)
+        frame.copyTo(intData, { planeIndex: 0, frameOffset: 0, frameCount: frame.numberOfFrames })
+        const left = audioBuffer.getChannelData(0)
+        const right = audioBuffer.getChannelData(1)
+        for (let i = 0; i < frame.numberOfFrames; i++) {
+          left[offset + i] = intData[i * numChannels] / 32768
+          if (numChannels > 1) right[offset + i] = intData[i * numChannels + 1] / 32768
+        }
+      } else if (fmt === 's16-planar') {
+        const planeBytes = frame.allocationSize({ planeIndex: 0 })
+        const samplesPerPlane = planeBytes / 2
+        const pcmLeft = new Int16Array(samplesPerPlane)
+        frame.copyTo(pcmLeft, { planeIndex: 0, frameOffset: 0, frameCount: frame.numberOfFrames })
+        const left = audioBuffer.getChannelData(0)
+        for (let i = 0; i < frame.numberOfFrames; i++) {
+          left[offset + i] = pcmLeft[i] / 32768
+        }
+        if (numChannels > 1) {
+          const pcmRight = new Int16Array(samplesPerPlane)
+          frame.copyTo(pcmRight, { planeIndex: 1, frameOffset: 0, frameCount: frame.numberOfFrames })
+          const right = audioBuffer.getChannelData(1)
+          for (let i = 0; i < frame.numberOfFrames; i++) {
+            right[offset + i] = pcmRight[i] / 32768
+          }
+        }
+      } else {
+        // f32-interleaved 或其它浮点交错格式
+        const totalBytes = frame.allocationSize({ planeIndex: 0 })
+        const totalSamples = totalBytes / 4
+        const interleaved = new Float32Array(totalSamples)
+        frame.copyTo(interleaved, { planeIndex: 0, frameOffset: 0, frameCount: frame.numberOfFrames })
+        const left = audioBuffer.getChannelData(0)
+        const right = audioBuffer.getChannelData(1)
+        for (let i = 0; i < frame.numberOfFrames; i++) {
+          left[offset + i] = interleaved[i * numChannels]
+          if (numChannels > 1) right[offset + i] = interleaved[i * numChannels + 1]
+        }
+      }
+      return frame.numberOfFrames
+    }
+
+    /** 精简 flush：不用 isPlaying/onended 闸门，用 schedule 消除间隙 */
+    function flushPlayback() {
+      if (!audioCtx || pendingFrames.length === 0) return
+
+      // 若队列堆积太多（音频严重落后画面），丢弃旧帧追赶
+      if (pendingFrames.length > 12) {
+        const excess = pendingFrames.length - 4
+        const dropped = pendingFrames.splice(0, excess)
+        dropped.forEach(f => f.close())
+      }
+
+      const framesToPlay = pendingFrames.splice(0)
+      const totalFrames = framesToPlay.reduce((sum, f) => sum + f.numberOfFrames, 0)
+      const sampleRate = framesToPlay[0].sampleRate
+      const numChannels = framesToPlay[0].numberOfChannels
+
+      const audioBuffer = audioCtx.createBuffer(numChannels, totalFrames, sampleRate)
+
+      let offset = 0
+      for (const frame of framesToPlay) {
+        try {
+          offset += copyFrameToBuffer(frame, audioBuffer, offset)
+        } catch (e) {
+          console.error('[audio] copyTo error:', e)
+        }
+        frame.close()
+      }
+
+      const source = audioCtx.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(audioCtx.destination)
+
+      // 精确调度：保证衔接无间隙
+      const now = audioCtx.currentTime
+      if (nextPlayTime < now) nextPlayTime = now
+      source.start(nextPlayTime)
+      nextPlayTime += audioBuffer.duration
+      scheduledCount++
+    }
+
+    const unsubAudioConfig = api.onAudioConfig(async (payload) => {
+      try {
+        console.log('[audio] 收到音频配置')
+        if (audioDecoder) {
+          audioDecoder.close()
+          audioDecoder = null
+        }
+        if (!audioCtx) {
+          audioCtx = new AudioContext({ sampleRate: 48000 })
+        }
+        // 恢复自动播放
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume()
+        }
+
+        // 解码 base64 Opus identification header
+        const binaryStr = atob(payload.data)
+        const headerBytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) headerBytes[i] = binaryStr.charCodeAt(i)
+
+        console.log('[audio] Opus header 长度:', headerBytes.length, '内容:', Array.from(headerBytes.slice(0, 8)))
+
+        audioDecoder = new AudioDecoder({
+          output: (frame: AudioData) => {
+            // console.log('[audio] 解码输出帧:', frame.numberOfFrames, 'samples,', frame.sampleRate, 'Hz,', frame.numberOfChannels, 'ch')
+            pendingFrames.push(frame)
+            // 直接调度，不额外 setTimeout 延迟
+            flushPlayback()
+          },
+          error: (e) => {
+            console.error('[audio] AudioDecoder 错误:', e.message, e)
+          },
+        })
+
+        audioDecoder.configure({
+          codec: 'opus',
+          sampleRate: 48000,
+          numberOfChannels: 2,
+          description: headerBytes,
+        })
+
+        console.log('[audio] AudioDecoder 配置完成, state:', audioDecoder.state)
+        isAudioActive = true
+        showToast('success', '音频同步已开启')
+      } catch (e) {
+        console.error('[audio] 音频初始化失败:', e)
+        showToast('error', '音频同步初始化失败')
+      }
+    })
+
+    const unsubAudioFrame = api.onAudioFrame((payload) => {
+      if (!audioDecoder || !isAudioActive) return
+
+      try {
+        const binaryStr = atob(payload.data)
+        const frameBytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) frameBytes[i] = binaryStr.charCodeAt(i)
+
+        const chunk = new EncodedAudioChunk({
+          type: 'key',
+          timestamp: payload.pts ? Math.round(payload.pts * 1000) : 0,
+          data: frameBytes,
+        })
+        audioDecoder.decode(chunk)
+      } catch (e) {
+        console.error('[audio] decode error:', e)
+      }
+    })
+
+    return () => {
+      unsubAudioConfig()
+      unsubAudioFrame()
+      if (audioDecoder) {
+        audioDecoder.close()
+        audioDecoder = null
+      }
+      if (audioCtx) {
+        audioCtx.close()
+        audioCtx = null
+      }
+      isAudioActive = false
+      // 清理待播放帧
+      pendingFrames.forEach(f => f.close())
+      pendingFrames.length = 0
+      scheduledCount = 0
+      nextPlayTime = 0
+    }
   }, [])
 
   // ===========================================================================

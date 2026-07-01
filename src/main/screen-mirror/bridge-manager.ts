@@ -60,6 +60,10 @@ export const bridge = {
               keyframe: msg.keyframe,
               pts: msg.pts,
             })
+          } else if (msg.type === 'audio-config') {
+            send(SMC.AUDIO_CONFIG, { data: msg.data })
+          } else if (msg.type === 'audio-frame') {
+            send(SMC.AUDIO_FRAME, { data: msg.data, pts: msg.pts })
           } else if (msg.type === 'error') {
             send(SMC.ERROR, msg.error)
           }
@@ -68,7 +72,7 @@ export const bridge = {
     })
 
     bridgeProcess.stderr?.on('data', (data: Buffer) => {
-      console.error('[bridge]', data.toString())
+      // console.error('[bridge]', data.toString())
     })
 
     bridgeProcess.on('exit', (code) => {

@@ -122,6 +122,8 @@ const SMC = {
   HOME: 'scrcpy:home',
   TEXT: 'scrcpy:text',
   FRAME: 'scrcpy:frame',
+  AUDIO_CONFIG: 'scrcpy:audioConfig',
+  AUDIO_FRAME: 'scrcpy:audioFrame',
   CONNECTED: 'scrcpy:connected',
   DISCONNECTED: 'scrcpy:disconnected',
   ERROR: 'scrcpy:error',
@@ -163,6 +165,17 @@ const screenMirrorAPI = {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data as string)
     ipcRenderer.on(SMC.ERROR, handler)
     return () => ipcRenderer.removeListener(SMC.ERROR, handler)
+  },
+
+  onAudioConfig: (callback: (data: any) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on(SMC.AUDIO_CONFIG, handler)
+    return () => ipcRenderer.removeListener(SMC.AUDIO_CONFIG, handler)
+  },
+  onAudioFrame: (callback: (data: any) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
+    ipcRenderer.on(SMC.AUDIO_FRAME, handler)
+    return () => ipcRenderer.removeListener(SMC.AUDIO_FRAME, handler)
   },
 }
 

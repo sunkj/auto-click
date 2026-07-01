@@ -66,21 +66,52 @@ async function main() {
   const meta = videoStream.metadata
   send('meta', { width: meta?.width, height: meta?.height, codec: meta?.codec })
 
-  // 5. 读取视频包并发送
-  const reader = videoStream.stream.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value.type === 'configuration') {
-      send('config', { data: Buffer.from(value.data).toString('base64') })
-    } else {
-      send('frame', {
-        data: Buffer.from(value.data).toString('base64'),
-        keyframe: value.keyframe,
-        pts: value.pts != null ? Number(value.pts) : undefined,
-      })
+  // 5. 并行读取视频和音频流
+  async function readVideo() {
+    const reader = videoStream.stream.getReader()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value.type === 'configuration') {
+        send('config', { data: Buffer.from(value.data).toString('base64') })
+      } else {
+        send('frame', {
+          data: Buffer.from(value.data).toString('base64'),
+          keyframe: value.keyframe,
+          pts: value.pts != null ? Number(value.pts) : undefined,
+        })
+      }
     }
   }
+
+  async function readAudio() {
+    try {
+      const audioStream = await scrcpy.audioStream
+      if (!audioStream) {
+        console.error('[audio] audioStream is null/undefined')
+        return
+      }
+      console.error('[audio] audioStream available, metadata:', JSON.stringify(audioStream.metadata))
+      const reader = audioStream.stream.getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        console.error('[audio] packet type:', value.type, 'hasData:', !!value.data, 'dataLen:', value.data?.byteLength, 'pts:', value.pts != null ? Number(value.pts) : 'null')
+        if (value.type === 'configuration') {
+          send('audio-config', { data: Buffer.from(value.data).toString('base64') })
+        } else if (value.data && value.data.byteLength > 0) {
+          send('audio-frame', {
+            data: Buffer.from(value.data).toString('base64'),
+            pts: value.pts != null ? Number(value.pts) : undefined,
+          })
+        }
+      }
+    } catch (e) {
+      console.error('[audio] readAudio error:', e.message, e.stack)
+    }
+  }
+
+  await Promise.all([readVideo(), readAudio()])
 }
 
 main().catch((err) => {

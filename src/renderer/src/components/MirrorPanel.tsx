@@ -18,8 +18,6 @@ import {
   Clock,
   PanelLeftClose,
   Minimize2,
-  Volume2,
-  VolumeX,
   Maximize2,
   Square,
   ArrowLeft,
@@ -50,7 +48,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
   // 截图状态
   // 音频同步开关
-  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [audioEnabled, setAudioEnabled] = useState(true)
 
   const [isScreenshotting, setIsScreenshotting] = useState(false)
 
@@ -267,13 +265,6 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
         {!isMinimized && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAudioEnabled((v) => !v)}
-              className={`flex items-center gap-1 px-1.5 h-6 rounded text-xs transition-colors ${audioEnabled ? 'text-blue-400 hover:text-blue-300' : 'text-muted-foreground/50 hover:text-muted-foreground'}`}
-              title={audioEnabled ? '关闭音频同步' : '开启音频同步'}
-            >
-              {audioEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-            </button>
             <div className="flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground/70">
               <Crosshair className="h-3 w-3" />
               <span>X: {isHovering ? mousePos.x : '-'} Y: {isHovering ? mousePos.y : '-'}</span>
@@ -345,6 +336,19 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
                 <p>请通过 USB 连接您的 Android 设备</p>
                 <p>确保已开启开发者选项和 USB 调试</p>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
+                <div
+                  onClick={() => setAudioEnabled((v) => !v)}
+                  className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${audioEnabled ? 'bg-blue-500' : 'bg-muted-foreground/30'}`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform duration-200 ${audioEnabled ? 'translate-x-4' : 'translate-x-0'}`}
+                  />
+                </div>
+                <span className={`text-xs ${audioEnabled ? 'text-blue-400' : 'text-muted-foreground/60'}`}>
+                  同步音频
+                </span>
+              </label>
             </div>
           )}
         </div>
