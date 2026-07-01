@@ -269,7 +269,6 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
             {!isConnected && (
               <Badge variant="outline" className="h-5 text-[10px] font-normal text-muted-foreground/50">未连接</Badge>
             )}
-            <SchedulerStatusIndicator onClick={() => setScheduleOpen(true)} />
 
           </div>
         )}
@@ -459,6 +458,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
               <>
                 <span className="text-green-500 font-medium">● 已连接</span>
                 <span className="text-muted-foreground">{deviceInfo.model}</span>
+                <SchedulerStatusIndicator onClick={() => setScheduleOpen(true)} />
               </>
             ) : (
               <span className="text-muted-foreground/50">
