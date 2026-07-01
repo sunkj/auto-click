@@ -18,6 +18,8 @@ import {
   Clock,
   PanelLeftClose,
   Minimize2,
+  Volume2,
+  VolumeX,
   Maximize2,
   Square,
   ArrowLeft,
@@ -47,6 +49,9 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
   const contentRef = useRef<HTMLDivElement>(null)
 
   // 截图状态
+  // 音频同步开关
+  const [audioEnabled, setAudioEnabled] = useState(false)
+
   const [isScreenshotting, setIsScreenshotting] = useState(false)
 
   const handleScreenshot = async () => {
@@ -239,7 +244,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
               </div>
               <Separator orientation="vertical" className="h-4" />
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={connect} disabled={isConnected || isLoading} title="连接设备">
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={() => connect(audioEnabled)} disabled={isConnected || isLoading} title="连接设备">
                   <Smartphone className="h-3 w-3" />
                   {isLoading ? '连接中...' : '连接'}
                 </Button>
@@ -262,6 +267,13 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
 
         {!isMinimized && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAudioEnabled((v) => !v)}
+              className={`flex items-center gap-1 px-1.5 h-6 rounded text-xs transition-colors ${audioEnabled ? 'text-blue-400 hover:text-blue-300' : 'text-muted-foreground/50 hover:text-muted-foreground'}`}
+              title={audioEnabled ? '关闭音频同步' : '开启音频同步'}
+            >
+              {audioEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+            </button>
             <div className="flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground/70">
               <Crosshair className="h-3 w-3" />
               <span>X: {isHovering ? mousePos.x : '-'} Y: {isHovering ? mousePos.y : '-'}</span>
@@ -320,7 +332,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
                   <Smartphone className="h-10 w-10 text-muted-foreground/30" />
                 </div>
               </div>
-              <Button onClick={connect} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
+              <Button onClick={() => connect(audioEnabled)} size="lg" className="h-12 px-8 text-base gap-2 shadow-md">
                 <Smartphone className="h-5 w-5" />
                 连接设备
               </Button>

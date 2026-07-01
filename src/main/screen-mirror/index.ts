@@ -39,7 +39,7 @@ export function registerScrcpyHandlers(): void {
     }
   })
 
-  ipcMain.handle(SMC.CONNECT, async (_event, serial?: string) => {
+  ipcMain.handle(SMC.CONNECT, async (_event, serial?: string, audioEnabled?: boolean) => {
     try {
       status = 'connecting'
       send(SMC.CONNECTED, 'connecting')
@@ -55,7 +55,7 @@ export function registerScrcpyHandlers(): void {
       const transport = target.serial.includes(':') ? 'wi-fi' : 'usb'
 
       // 启动视频流桥接进程
-      bridge.start(target.serial)
+      bridge.start(target.serial, !!audioEnabled)
 
       status = 'connected'
       send(SMC.CONNECTED, 'connected')

@@ -17,7 +17,7 @@ let bridgeProcess: import('child_process').ChildProcess | null = null
 
 export const bridge = {
   /** 启动桥接进程 */
-  start(serial: string): void {
+  start(serial: string, audioEnabled = false): void {
     stop()
     const bridgePath = path.join(__dirname, 'bridge.mjs')
     // 在完整 PATH 环境下用 node 运行桥接进程
@@ -31,7 +31,7 @@ export const bridge = {
         process.env.PATH || '',
       ].join(':'),
     }
-    bridgeProcess = spawn('node', [bridgePath, serial], {
+    bridgeProcess = spawn('node', [bridgePath, serial, String(audioEnabled)], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env,
     })

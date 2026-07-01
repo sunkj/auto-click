@@ -15,7 +15,7 @@ interface DeviceStore {
   status: ConnectionStatus
   deviceInfo: DeviceInfo | null
   errorMsg: string
-  connect: () => Promise<void>
+  connect: (audioEnabled?: boolean) => Promise<void>
   disconnect: () => Promise<void>
   /** 由 MirrorPanel 在收到帧时调用更新 */
   _setFrameMeta: (width: number, height: number) => void
@@ -30,7 +30,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   deviceInfo: null,
   errorMsg: '',
 
-  connect: async () => {
+  connect: async (audioEnabled?: boolean) => {
     const api = getAPI()
     if (!api) {
       // fallback: 无 electronAPI 时用 mock
@@ -39,7 +39,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
     }
     set({ status: 'connecting', errorMsg: '' })
     try {
-      const result = await api.connect()
+      const result = await api.connect(undefined, audioEnabled)
       if (result.success && result.data) {
         set({
           status: 'connected',

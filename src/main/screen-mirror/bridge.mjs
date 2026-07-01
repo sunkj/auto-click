@@ -16,7 +16,8 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const serial = process.argv[2]
-if (!serial) { console.error('Usage: node bridge.mjs <serial>'); process.exit(1) }
+const audioEnabled = process.argv[3] === 'true'
+if (!serial) { console.error('Usage: node bridge.mjs <serial> [audioEnabled]'); process.exit(1) }
 
 function send(type, data = {}) {
   process.stdout.write(JSON.stringify({ type, ...data }) + '\n')
@@ -49,7 +50,7 @@ async function main() {
     new AdbScrcpyOptionsLatest(
       {
         video: true,
-        audio: false,
+        audio: audioEnabled,
         control: true,
         powerOn: true,
         maxSize: 1080,
