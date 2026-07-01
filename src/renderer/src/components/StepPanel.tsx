@@ -60,7 +60,11 @@ const stepIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   wait: Hourglass,
 }
 
-export function StepPanel() {
+interface StepPanelProps {
+  className?: string
+}
+
+export function StepPanel({ className }: StepPanelProps) {
   const { scripts, currentScriptId, selectedStepId, setSelectedStep, getStepsForScript, executingStepIndex, runScript, runStep, stopExecution } = useScriptStore()
   const [stepDialogOpen, setStepDialogOpen] = useState(false)
   const [editScriptOpen, setEditScriptOpen] = useState(false)
@@ -192,7 +196,7 @@ export function StepPanel() {
 
   if (!currentScriptId || !currentScript) {
     return (
-      <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
+      <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
           <FileCode className="h-10 w-10 text-muted-foreground/30" />
           <div>
@@ -202,7 +206,7 @@ export function StepPanel() {
             </p>
           </div>
         </div>
-      </aside>
+      </div>
     )
   }
 
@@ -212,7 +216,7 @@ export function StepPanel() {
     : 0
 
   return (
-    <aside className="flex w-[340px] min-w-[340px] flex-col border-r bg-card">
+    <div className={cn("flex flex-col bg-card overflow-hidden", className)}>
       {/* Top Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-b px-3">
         <div className="flex items-center gap-2">
@@ -242,7 +246,7 @@ export function StepPanel() {
         </div>
       </div>
 
-      <div className='px-4 py-3'>
+      <div className="px-4 py-3">
         <Button
           variant="outline"
           size="sm"
@@ -291,7 +295,7 @@ export function StepPanel() {
                     onDrop={(e) => handleDrop(e, _idx)}
                     onDragEnd={handleDragEnd}
                     className={cn(
-                      'group flex items-start gap-1 px-2 py-3 transition-all duration-150 active:scale-[0.99]',
+                      'group flex items-start gap-1 px-2 py-3 transition-all duration-150 active:scale-[0.99] min-w-0',
                       isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500 active:scale-100' : '',
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50',
                       draggedIndex.current === _idx ? 'opacity-50' : ''
@@ -322,10 +326,10 @@ export function StepPanel() {
                         <StepIcon className={cn('h-4 w-4 shrink-0', isExecuting ? 'text-yellow-500' : 'text-muted-foreground')} />
                       </div>
                       {/* Step Content */}
-                      <div className="flex-1 min-w-0 mt-[-2px]">
+                      <div className="flex-1 min-w-0 mt-[-2px] overflow-hidden">
                         <div className="text-sm font-medium truncate">{step.name || stepLabels[step.type] || step.type}</div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {step.description}
+                          <span className="block truncate">{step.description || '暂无描述'}</span>
                         </div>
                         {/* 条件 & Context 信息 */}
                         {(step as any).condition || (step as any).contextOutput ? (
@@ -510,7 +514,7 @@ export function StepPanel() {
         variant="destructive"
         onConfirm={handleConfirmDeleteStep}
       />
-    </aside>
+    </div>
   )
 }
 

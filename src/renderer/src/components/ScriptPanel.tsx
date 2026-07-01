@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react'
-import { version } from '../../../../package.json'
+import { useState } from 'react'
 import { useScriptStore, Script } from '@/stores/scriptStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { NewScriptDialog } from '@/components/NewScriptDialog'
-import { SettingsDialog } from '@/components/SettingsDialog'
-import { ScheduleDialog } from '@/components/ScheduleDialog'
+
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
   FileCode,
@@ -17,14 +14,11 @@ import {
   FilePlus,
   Download,
   Upload,
-  Settings,
   ChevronRight,
   ChevronDown,
   Trash2,
   MousePointerClick,
-  Sun,
-  Moon,
-  Clock,
+
 } from 'lucide-react'
 
 function ScriptFolder({ folder, onDelete }: { folder: Script; onDelete: (script: Script) => void }) {
@@ -70,12 +64,12 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
   const isSelected = currentScriptId === script.id
 
   return (
-    <Card
+    <div
       className={cn(
-        'cursor-pointer border-0 transition-all duration-150 active:scale-[0.98] group',
+        'cursor-pointer transition-all duration-150 group',
         isSelected
-          ? 'border-primary/50 bg-accent shadow-sm'
-          : 'border-transparent bg-transparent hover:bg-accent/50'
+          ? 'bg-accent shadow-sm rounded-md'
+          : 'hover:bg-accent/30 rounded-md'
       )}
       onClick={() => setCurrentScript(script.id)}
     >
@@ -106,22 +100,17 @@ function ScriptItem({ script, onDelete }: { script: Script; onDelete: (script: S
           </button>
         )}
       </div>
-    </Card>
+    </div>
   )
 }
 
-export function ScriptPanel() {
+interface ScriptPanelProps {
+  className?: string
+}
+
+export function ScriptPanel({ className }: ScriptPanelProps) {
   const { scripts, loading, currentScriptId } = useScriptStore()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [scheduleOpen, setScheduleOpen] = useState(false)
-
-  // 主题切换
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark)
-  }, [isDark])
-
   const [deleteTarget, setDeleteTarget] = useState<Script | null>(null)
 
   const folders = scripts.filter((s) => s.type === 'folder')
@@ -163,7 +152,7 @@ export function ScriptPanel() {
   }
 
   return (
-    <aside className="flex w-[240px] min-w-[240px] flex-col border-r bg-background">
+    <div className={cn("flex flex-col bg-background", className)}>
       {/* New Script Button */}
       <div className="px-3 pt-3 pb-2">
         <Button
@@ -233,22 +222,7 @@ export function ScriptPanel() {
             导出
           </Button>
         </div>
-        <div className="flex h-[40px] items-center justify-between px-2 py-1 border-t">
-          <span className="text-[10px] text-muted-foreground">v{version}</span>
-          <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsDark((v) => !v)} title={isDark ? '切换亮色主题' : '切换深色主题'}>
-              {isDark ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setScheduleOpen(true)} title="定时任务">
-              <Clock className="h-3 w-3" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSettingsOpen(true)}>
-              <Settings className="h-3 w-3" />
-            </Button>
-          </div>
-          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-          <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
-        </div>
+        <div className="h-1" />
       </div>
 
       {/* Delete confirm dialog */}
@@ -261,6 +235,6 @@ export function ScriptPanel() {
         variant="destructive"
         onConfirm={handleDelete}
       />
-    </aside>
+    </div>
   )
 }
