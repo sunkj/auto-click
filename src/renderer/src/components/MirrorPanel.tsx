@@ -23,6 +23,15 @@ import {
   ArrowLeft,
   Home,
   Camera,
+  ChevronDown,
+  Settings,
+  MousePointerClick,
+  ArrowLeftRight,
+  ToggleLeft,
+  Cable,
+  CheckCircle2,
+  Lightbulb,
+  ExternalLink,
 } from 'lucide-react'
 import { ScreenCanvas } from '@/components/ScreenCanvas'
 import { showToast } from '@/components/ui/toast'
@@ -332,10 +341,7 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
                   {errorMsg}
                 </div>
               )}
-              <div className="space-y-1 text-xs text-muted-foreground/60">
-                <p>请通过 USB 连接您的 Android 设备</p>
-                <p>确保已开启开发者选项和 USB 调试</p>
-              </div>
+              <ConnectionTutorial />
               <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
                 <div
                   onClick={() => setAudioEnabled((v) => !v)}
@@ -493,6 +499,148 @@ export function MirrorPanel({ onTogglePanels, panelsVisible }: MirrorPanelProps)
         </div>
       )}
     </main>
+  )
+}
+
+// =============================================================================
+// 连接教程组件
+// =============================================================================
+
+/** 连接教程步骤 */
+const CONNECTION_STEPS = [
+  { icon: Settings, label: '打开「设置」→「关于手机」', detail: '不同品牌路径略有差异，一般在「设置」最底部' },
+  { icon: MousePointerClick, label: '连续点击「版本号」7 次', detail: '直到提示"已进入开发者模式"' },
+  { icon: ArrowLeftRight, label: '返回「设置」→「开发者选项」', detail: '部分机型在「设置」→「系统」中' },
+  { icon: ToggleLeft, label: '开启「USB 调试」', detail: '在「调试」栏下方，打开开关并确认' },
+  { icon: Cable, label: '用 USB 线连接电脑', detail: '建议使用原装数据线' },
+  { icon: CheckCircle2, label: '手机上弹出授权 → 点击「允许」', detail: '勾选"一律允许"，避免每次重新授权' },
+]
+
+function ConnectionTutorial() {
+  const [expanded, setExpanded] = useState(false)
+  const [showWirelessTip, setShowWirelessTip] = useState(false)
+
+  return (
+    <div className="w-full max-w-xs">
+      {/* 可折叠标题栏 */}
+      <div className="mb-4 space-y-1 text-xs text-muted-foreground/60">
+        <p>请通过 USB 连接您的 Android 设备</p>
+        <p>确保已开启开发者选项和 USB 调试</p>
+      </div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between gap-1.5 px-3 py-2 rounded-lg text-xs transition-colors hover:bg-accent/50 text-muted-foreground/70 hover:text-muted-foreground"
+      >
+        <span className="flex items-center gap-1.5">
+          <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+          如何开启开发者模式？
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-3.5 w-3.5 transition-transform duration-200',
+            expanded && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {/* 展开内容 */}
+      {expanded && (
+        <div className="mt-1 rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* 步骤列表 */}
+          <div className="space-y-2">
+            {CONNECTION_STEPS.map((step, i) => {
+              const Icon = step.icon
+              return (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      <span>{step.label}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">{step.detail}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* 分隔线 */}
+          <div className="border-t border-border/40 pt-2 space-y-1.5">
+            {/* 小提示 */}
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+              <Lightbulb className="h-3 w-3 text-amber-400/60" />
+              如果仍未发现设备，尝试重新插拔 USB 线
+            </p>
+
+            {/* macOS / Wi-Fi 快捷链接 */}
+            <div className="flex items-center gap-2 pt-0.5">
+              <button
+                onClick={() => window.open('https://developer.android.com/studio/run/device#mac-usb')}
+                className="flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors"
+              >
+                <Monitor className="h-3 w-3" />
+                macOS 需授权
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+              <span className="text-muted-foreground/30">|</span>
+              <button
+                onClick={() => setShowWirelessTip(true)}
+                className="flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors"
+              >
+                <Wifi className="h-3 w-3" />
+                Wi-Fi 无线连接
+                <ExternalLink className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wi-Fi 连接弹窗提示 */}
+      <ConnectionTipDialog open={showWirelessTip} onClose={() => setShowWirelessTip(false)} />
+    </div>
+  )
+}
+
+// =============================================================================
+// Wi-Fi 连接提示弹窗
+// =============================================================================
+
+function ConnectionTipDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="bg-card border border-border rounded-xl p-5 max-w-sm w-[90%] shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-sm font-medium mb-3">Wi-Fi 无线连接</h3>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-medium text-primary">1</span>
+            <span>手机和电脑连接到同一个 Wi-Fi</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-medium text-primary">2</span>
+            <span>USB 连接手机，执行：<code className="bg-muted px-1 rounded text-[10px]">adb tcpip 5555</code></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-medium text-primary">3</span>
+            <span>拔掉 USB，执行：<code className="bg-muted px-1 rounded text-[10px]">adb connect 手机IP:5555</code></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-medium text-primary">4</span>
+            <span>手机 IP 可在「设置」→「关于手机」→「状态信息」中查看</span>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" className="mt-4 w-full" onClick={onClose}>
+          知道了
+        </Button>
+      </div>
+    </div>
   )
 }
 
