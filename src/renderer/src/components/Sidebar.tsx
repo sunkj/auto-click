@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { ScriptPanel } from '@/components/ScriptPanel'
 import { StepPanel } from '@/components/StepPanel'
 import { AiChatPanel } from '@/components/AiChatPanel'
+import { FileTransferPanel } from '@/components/FileTransferPanel'
 import { SidebarActions } from '@/components/SidebarActions'
 import { cn } from '@/lib/utils'
-import { FileCode, Sparkles } from 'lucide-react'
+import { FileCode, Sparkles, FolderOpen } from 'lucide-react'
 
-type Tab = 'script' | 'ai'
+type Tab = 'script' | 'ai' | 'files'
 
 export function Sidebar() {
   const [activeTab, setActiveTab] = useState<Tab>('script')
@@ -42,6 +43,19 @@ export function Sidebar() {
             <Sparkles className={cn('h-3.5 w-3.5 transition-colors', activeTab === 'ai' ? 'text-primary' : '')} />
             AI 助手
           </button>
+          <button
+            onClick={() => setActiveTab('files')}
+            className={cn(
+              'relative flex items-center gap-1.5 h-full px-3 pb-px text-xs font-medium transition-colors',
+              'after:absolute after:bottom-[-1px] after:left-2 after:right-2 after:h-[2.5px] after:rounded-full after:transition-all after:duration-200',
+              activeTab === 'files'
+                ? 'text-foreground after:bg-primary'
+                : 'text-muted-foreground/60 hover:text-muted-foreground after:bg-transparent'
+            )}
+          >
+            <FolderOpen className={cn('h-3.5 w-3.5 transition-colors', activeTab === 'files' ? 'text-primary' : '')} />
+            文件
+          </button>
         </div>
         <div className="flex items-center gap-0.5 pr-2">
           <SidebarActions />
@@ -56,7 +70,14 @@ export function Sidebar() {
         </div>
       )}
       {activeTab === 'ai' && (
-        <AiChatPanel />
+        <div className="flex flex-1 overflow-hidden">
+          <AiChatPanel />
+        </div>
+      )}
+      {activeTab === 'files' && (
+        <div className="flex flex-1 overflow-hidden">
+          <FileTransferPanel />
+        </div>
       )}
     </aside>
   )

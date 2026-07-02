@@ -332,6 +332,28 @@ const schedulerAPI = {
 }
 
 // =============================================================================
+// 文件传输 File Transfer API
+// =============================================================================
+
+const FILE_TRANSFER = {
+  LIST_DIR: 'file-transfer:listDir',
+  UPLOAD: 'file-transfer:upload',
+  DOWNLOAD: 'file-transfer:download',
+  GET_THUMBNAIL: 'file-transfer:getThumbnail',
+} as const
+
+const fileTransferAPI = {
+  listDir: (path: string) =>
+    ipcRenderer.invoke(FILE_TRANSFER.LIST_DIR, { path }),
+  upload: (localPath: string, remoteDir: string) =>
+    ipcRenderer.invoke(FILE_TRANSFER.UPLOAD, { localPath, remoteDir }),
+  download: (remotePath: string, localDir: string) =>
+    ipcRenderer.invoke(FILE_TRANSFER.DOWNLOAD, { remotePath, localDir }),
+  getThumbnail: (path: string) =>
+    ipcRenderer.invoke(FILE_TRANSFER.GET_THUMBNAIL, { path }),
+}
+
+// =============================================================================
 // 暴露安全 API 到渲染进程
 // =============================================================================
 
@@ -345,4 +367,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   aiAgent: aiAgentAPI,
   recordedClick: recordedClickAPI,
   scheduler: schedulerAPI,
+  fileTransfer: fileTransferAPI,
 })

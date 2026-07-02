@@ -159,6 +159,26 @@ interface ElectronAiAgentAPI {
   onHistory: (callback: (history: AiAgentHistoryEntry[]) => void) => () => void
 }
 
+// =============================================================================
+// 文件传输 API 类型定义
+// =============================================================================
+
+interface FileEntry {
+  name: string
+  path: string
+  isDirectory: boolean
+  size: number
+  modifiedTime: string
+  permissions: string
+}
+
+interface ElectronFileTransferAPI {
+  listDir: (path: string) => Promise<IpcResult<FileEntry[]>>
+  upload: (localPath: string, remoteDir: string) => Promise<IpcResult<{ fileName: string }>>
+  download: (remotePath: string, localDir: string) => Promise<IpcResult<{ fileName: string; savePath: string }>>
+  getThumbnail: (path: string) => Promise<IpcResult<string | null>>
+}
+
 interface Window {
   electronAPI: {
     platform: string
@@ -206,5 +226,6 @@ interface Window {
       onStatusUpdate: (callback: (schedule: any) => void) => () => void
       onSelectScript: (callback: (scriptId: string) => void) => () => void
     }
+    fileTransfer?: ElectronFileTransferAPI
   }
 }

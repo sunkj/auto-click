@@ -6,6 +6,7 @@ import { registerEngineHandlers, getEngine } from './script-engine'
 import { registerAiAgentHandlers } from './ai-assistant'
 import { registerRecordedClickHandlers } from './record-script'
 import { registerSchedulerHandlers, getSchedulerEngine, setScriptEngine } from './scheduler'
+import { registerFileTransferHandlers } from './file-transfer'
 import { loadConfig, saveConfig } from './config'
 
 const isDev = !app.isPackaged
@@ -105,6 +106,7 @@ app.whenReady().then(() => {
   registerAiAgentHandlers()
   registerRecordedClickHandlers()
   registerSchedulerHandlers()
+  registerFileTransferHandlers()
   // 配置读写 IPC
   ipcMain.handle('config:load', () => loadConfig())
   ipcMain.handle('config:save', (_event, config) => { saveConfig(config); return { success: true } })
