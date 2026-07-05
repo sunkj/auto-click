@@ -18,6 +18,8 @@ async function resolveAdbPath(): Promise<string> {
     '/opt/homebrew/bin/adb',
     '/usr/bin/adb',
     '/opt/android/platform-tools/adb',
+    `${process.env.HOME}/Library/Android/sdk/platform-tools/adb`,
+    `${process.env.HOME}/Android/Sdk/platform-tools/adb`,
   ]
   for (const p of commonPaths) {
     if (existsSync(p)) return p
@@ -33,7 +35,7 @@ async function resolveAdbPath(): Promise<string> {
 
 let adbPathPromise: Promise<string> | null = null
 
-async function getAdbPath(): Promise<string> {
+export async function getAdbPath(): Promise<string> {
   if (!adbPathPromise) {
     adbPathPromise = resolveAdbPath()
   }

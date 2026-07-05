@@ -46,7 +46,17 @@ export async function executeAiWorkflow(
     engineSteps: [],
   }
 
+  // 检查取消（LLM 调用前）
+  if (isCancelled?.()) {
+    return { success: false, engineSteps: [], duration: 0, error: '执行已取消' }
+  }
+
   const parseResult = await parseGraph.invoke(parseState) as any
+
+  // LLM 调用后再次检查
+  if (isCancelled?.()) {
+    return { success: false, engineSteps: [], duration: 0, error: '执行已取消' }
+  }
   let engineSteps: EngineStep[] = parseResult.engineSteps || []
   const intent: IntentResult | null = parseResult.intent || null
 
@@ -79,7 +89,7 @@ export async function executeAiWorkflow(
   const config = loadConfig()
   const stepInterval = config.stepInterval || 3
   const maxRetries = config.maxRetries || 0
-  const ctx = createExecutionContext(`ai-${Date.now()}`, deviceSerial, engineSteps, stepInterval)
+  const ctx = createExecutionContext(`ai-${Date.now()}`, deviceSerial, engineSteps, stepInterval, undefined, isCancelled)
   const stepResults: Array<{ success: boolean; error?: string; duration: number }> = []
   const startTime = Date.now()
   const mutableSteps = [...engineSteps]
@@ -187,7 +197,22 @@ export async function executeAiWorkflow(
 
     // 步骤间延迟（跳过检查点后的第一个延迟，避免分支步骤前的不必要等待）
     if (i < mutableSteps.length && stepInterval > 0 && !mutableSteps[i]?.data?._checkpoint) {
-      await new Promise((r) => setTimeout(r, stepInterval * 1000))
+      const intervalMs = stepInterval * 1000
+      const checkInterval = 200
+      let elapsed = 0
+      while (elapsed < intervalMs) {
+        if (isCancelled?.()) {
+          return {
+            success: false,
+            engineSteps: mutableSteps,
+            stepResults,
+            error: '执行已取消',
+            duration: Date.now() - startTime,
+          }
+        }
+        await new Promise((r) => setTimeout(r, checkInterval))
+        elapsed += checkInterval
+      }
     }
   }
 

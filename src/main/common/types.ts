@@ -191,6 +191,7 @@ export interface ExecutionContext {
   currentIndex: number
   startTime: number
   context: Record<string, string>
+  cancelCheck?: () => boolean
 }
 
 /** 前置条件 */

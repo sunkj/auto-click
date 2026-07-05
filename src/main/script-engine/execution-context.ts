@@ -8,6 +8,7 @@ export function createExecutionContext(
   steps: EngineStep[],
   stepInterval: number,
   initialContext?: Record<string, string>,
+  cancelCheck?: () => boolean,
 ): IExecutionContext {
   return {
     executionId: randomUUID(),
@@ -18,5 +19,6 @@ export function createExecutionContext(
     currentIndex: 0,
     startTime: Date.now(),
     context: { ...initialContext },
+    cancelCheck,
   }
 }

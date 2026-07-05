@@ -110,6 +110,30 @@ export async function initializeDatabase(): Promise<void> {
         // 列已存在则忽略
       }
 
+      // 首次安装：写入示例数据
+      const [{ count }] = await queryRunner.query(`SELECT COUNT(*) as count FROM "scripts"`)
+      if (count === 0) {
+        console.log('[Database] 首次安装，写入示例数据...')
+        const folderId = '00000000-0000-0000-0000-000000000001'
+        const scriptId = '00000000-0000-0000-0000-000000000002'
+        // 创建"我的脚本"目录
+        await queryRunner.query(
+          `INSERT INTO "scripts" ("id", "type", "parent_id", "name", "file_path", "sort_order") VALUES (?, 'folder', NULL, '我的脚本', NULL, 1)`,
+          [folderId]
+        )
+        // 创建示例脚本
+        await queryRunner.query(
+          `INSERT INTO "scripts" ("id", "type", "parent_id", "name", "file_path", "sort_order") VALUES (?, 'script', ?, '打开微信', 'scripts/打开微信', 2)`,
+          [scriptId, folderId]
+        )
+        // 添加步骤：openApp 微信
+        await queryRunner.query(
+          `INSERT INTO "steps" ("script_id", "step_index", "type", "name", "data") VALUES (?, 1, 'openApp', '打开微信', '{"appName":"微信","description":"打开微信"}')`,
+          [scriptId]
+        )
+        console.log('[Database] 示例数据写入完成')
+      }
+
       console.log('[Database] 表结构已就绪')
     } finally {
       await queryRunner.release()

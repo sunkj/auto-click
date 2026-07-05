@@ -11,6 +11,7 @@
  */
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { getAdbPath } from './adb-executor'
 
 const execAsync = promisify(exec)
 
@@ -31,6 +32,12 @@ export interface UiAutomatorResult {
   rawDescription: string
 }
 
+/** 构建完整的 adb 命令字符串（使用解析到的 adb 路径） */
+async function buildAdbCmd(serial: string, shellCmd: string): Promise<string> {
+  const adb = await getAdbPath()
+  return `${adb} -s ${serial} shell ${shellCmd}`
+}
+
 /**
  * 通过 UI Automator 在屏幕中查找目标元素
  *
@@ -46,12 +53,12 @@ export async function findElementByUiAutomator(
   deviceHeight: number,
 ): Promise<UiAutomatorResult> {
   // 1. 通过 adb 执行 uiautomator dump，输出到设备端固定路径（覆盖写，不会累积）
-  const dumpCmd = `adb -s ${serial} shell uiautomator dump ${REMOTE_PATH}`
+  const dumpCmd = await buildAdbCmd(serial, `uiautomator dump ${REMOTE_PATH}`)
   console.log('[UiAutomator] 执行 dump:', dumpCmd)
   await execAsync(dumpCmd, { timeout: 10000 })
 
   // 2. 通过 adb shell cat 直接读取 XML 内容到内存，不落盘
-  const catCmd = `adb -s ${serial} shell cat ${REMOTE_PATH}`
+  const catCmd = await buildAdbCmd(serial, `cat ${REMOTE_PATH}`)
   console.log('[UiAutomator] 读取 XML:', catCmd)
   const { stdout: xmlContent } = await execAsync(catCmd, { timeout: 10000 })
   console.log('[UiAutomator] XML 大小:', xmlContent.length, 'bytes')

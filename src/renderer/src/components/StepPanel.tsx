@@ -220,11 +220,11 @@ export function StepPanel({ className }: StepPanelProps) {
       {/* Top Toolbar */}
       <div className="flex h-[40px] items-center justify-between border-b px-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-4">
             <FileCode className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium truncate max-w-[140px]">
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-medium truncate max-w-[120px]">
               {currentScript.name}
             </span>
             <Badge variant="secondary" className="h-4 px-1 text-[10px] font-normal">
@@ -232,7 +232,7 @@ export function StepPanel({ className }: StepPanelProps) {
             </Badge>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 w-[90px]">
           <Button variant="ghost" size="icon" className="h-7 w-7" title="运行全部" onClick={() => runScript(currentScriptId!)} disabled={executingStepIndex !== null}>
             <Play className={`h-4 w-4 ${executingStepIndex !== null ? 'text-muted-foreground' : 'text-green-500'}`} />
           </Button>
@@ -295,7 +295,7 @@ export function StepPanel({ className }: StepPanelProps) {
                     onDrop={(e) => handleDrop(e, _idx)}
                     onDragEnd={handleDragEnd}
                     className={cn(
-                      'group flex items-start gap-1 px-2 py-3 transition-all duration-150 active:scale-[0.99] min-w-0',
+                      'group flex items-start gap-1 px-2 py-3 transition-all duration-150 active:scale-[0.99] min-w-0 overflow-hidden',
                       isExecuting ? 'bg-yellow-500/20 border-l-2 border-yellow-500 active:scale-100' : '',
                       isSelected ? 'bg-accent' : 'hover:bg-accent/50',
                       draggedIndex.current === _idx ? 'opacity-50' : ''

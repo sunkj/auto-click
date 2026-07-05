@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { showToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
-import { Send, Sparkles, Loader2 } from 'lucide-react'
+import { Send, Sparkles, Loader2, Square } from 'lucide-react'
 
 interface ChatMessage {
   id: string
@@ -165,6 +165,14 @@ export function AiChatPanel() {
     }
   }
 
+  const handleStop = async () => {
+    const api = window.electronAPI?.aiAgent
+    if (api) {
+      await api.cancel()
+    }
+    setIsRunning(false)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -271,6 +279,20 @@ export function AiChatPanel() {
         )}
       </div>
 
+      {/* 停止按钮 - 底部居中 */}
+      {isRunning && (
+        <div className="flex justify-center py-2 shrink-0">
+          <button
+            onClick={handleStop}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 active:scale-95 transition-colors shadow-lg"
+            title="停止执行"
+          >
+            <Square className="h-3.5 w-3.5" />
+            <span>停止执行</span>
+          </button>
+        </div>
+      )}
+
       {/* 输入区域 */}
       <div className="border-t p-4 shrink-0">
         <div className="flex items-start gap-2">
@@ -284,22 +306,24 @@ export function AiChatPanel() {
             rows={4}
             className="flex-1 min-h-[80px] max-h-[140px] resize-none rounded-md bg-background px-3 py-0 text-md outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
           />
-          <button
-            onClick={handleSubmit}
-            disabled={!input.trim() || isRunning}
-            className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors',
-              isRunning || !input.trim()
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
-            )}
-          >
-            {isRunning ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim() || isRunning}
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors',
+                isRunning || !input.trim()
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
+              )}
+            >
+              {isRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

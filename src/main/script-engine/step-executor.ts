@@ -66,6 +66,11 @@ export class StepExecutor {
   async execute(step: EngineStep, context: ExecutionContext): Promise<StepResult> {
     const start = Date.now()
 
+    // 检查是否已取消
+    if (context.cancelCheck?.()) {
+      return { success: false, stepIndex: context.currentIndex, error: '执行已取消', duration: 0 }
+    }
+
     // 1. 解析模板
     const resolvedData = resolveTemplates(step.data, context.context)
 
@@ -104,19 +109,19 @@ export class StepExecutor {
           await this.executeHome(context.serial)
           break
         case 'wait':
-          await this.executeWait(resolvedData)
+          await this.executeWait(resolvedData, context)
           break
         case 'ai':
           await this.executeAi(resolvedData, context)
           break
         case 'openApp':
-          await this.executeOpenApp(resolvedData, context.serial)
+          await this.executeOpenApp(resolvedData, context.serial, context)
           break
         case 'checkText':
           await this.executeCheckText(resolvedData, context)
           break
         case 'visionClick':
-          await this.executeVisionClick(resolvedData, context.serial)
+          await this.executeVisionClick(resolvedData, context.serial, context)
           break
         default:
           throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, `不支持的步骤类型: ${step.type}`)
@@ -219,7 +224,7 @@ export class StepExecutor {
   }
 
   /** 执行等待步骤 — 通过延时等待指定时长 */
-  private async executeWait(data: Record<string, any>): Promise<void> {
+  private async executeWait(data: Record<string, any>, context?: ExecutionContext): Promise<void> {
     const durationSec = Number(data.duration) || 0
     if (durationSec <= 0) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '等待时长必须大于 0')
@@ -228,9 +233,17 @@ export class StepExecutor {
     const durationMs = Math.round(durationSec * 1000)
     console.log(`[StepExecutor] ⏳ 等待 ${durationSec} 秒...`)
 
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, durationMs)
-    })
+    // 可中断的等待，每 200ms 检查一次取消标志
+    const interval = 200
+    let elapsed = 0
+    while (elapsed < durationMs) {
+      if (context?.cancelCheck?.()) {
+        console.log('[StepExecutor] 等待被取消')
+        return
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, interval))
+      elapsed += interval
+    }
 
     console.log(`[StepExecutor] ✔ 等待完成 (${durationSec} 秒)`)
   }
@@ -264,6 +277,12 @@ export class StepExecutor {
 
     let i = 0
     while (i < mutableSteps.length) {
+      // 检查取消
+      if (context.cancelCheck?.()) {
+        console.log('[StepExecutor] AI 子步骤执行被取消')
+        return
+      }
+
       const step = mutableSteps[i]
       context.currentIndex = i
 
@@ -307,13 +326,24 @@ export class StepExecutor {
       i++
 
       if (i < mutableSteps.length && stepInterval > 0 && !mutableSteps[i]?.data?._checkpoint) {
-        await new Promise((r) => setTimeout(r, stepInterval * 1000))
+        // 可中断的延迟
+        const intervalMs = stepInterval * 1000
+        const checkInterval = 200
+        let elapsed = 0
+        while (elapsed < intervalMs) {
+          if (context.cancelCheck?.()) {
+            console.log('[StepExecutor] AI 子步骤延迟被取消')
+            return
+          }
+          await new Promise((r) => setTimeout(r, checkInterval))
+          elapsed += checkInterval
+        }
       }
     }
   }
 
   /** 执行打开App操作 — 先回主屏幕 → 逐页扫描找到应用图标并点击 */
-  private async executeOpenApp(data: Record<string, any>, serial: string): Promise<void> {
+  private async executeOpenApp(data: Record<string, any>, serial: string, context?: ExecutionContext): Promise<void> {
     const appName = String(data.appName || '')
     if (!appName) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '应用名称不能为空')
@@ -321,7 +351,18 @@ export class StepExecutor {
 
     // 先回主屏幕
     await adbExec.keyEvent(serial, 'KEYCODE_HOME')
-    await new Promise((r) => setTimeout(r, 800))
+    const homeDelay = () => new Promise<void>((resolve) => {
+      const id = setInterval(() => {
+        if (context?.cancelCheck?.()) {
+          clearInterval(id); resolve()
+        }
+      }, 200)
+      setTimeout(() => { clearInterval(id); resolve() }, 800)
+    })
+    await homeDelay()
+    if (context?.cancelCheck?.()) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '执行已取消')
+    }
 
     const { width: dw, height: dh } = await adbExec.getResolution(serial)
     const config = loadConfig()
@@ -341,27 +382,40 @@ export class StepExecutor {
       }
       return false
     }
-    const delay = () => new Promise((r) => setTimeout(r, 1000))
+    const delay = () => new Promise<void>((resolve) => {
+      const id = setInterval(() => {
+        if (context?.cancelCheck?.()) {
+          clearInterval(id); resolve()
+        }
+      }, 200)
+      setTimeout(() => { clearInterval(id); resolve() }, 1000)
+    })
 
     // 1. 从首页开始，先查找当前页
     if (await searchApp()) return
+    if (context?.cancelCheck?.()) return
 
     // 2. 左滑查找右侧页面（每滑一次查一次）
     for (let i = 0; i < maxPages; i++) {
+      if (context?.cancelCheck?.()) return
       await swipeLeft()
       await delay()
+      if (context?.cancelCheck?.()) return
       if (await searchApp()) return
     }
 
     // 3. 右滑查找左侧页面（每滑一次查一次）
     for (let i = 0; i < maxPages; i++) {
+      if (context?.cancelCheck?.()) return
       await swipeRight()
       await delay()
+      if (context?.cancelCheck?.()) return
       if (await searchApp()) return
     }
 
     // 4. 原路返回首页：左滑 N 次
     for (let i = 0; i < maxPages; i++) {
+      if (context?.cancelCheck?.()) return
       await swipeLeft()
       await delay()
     }
@@ -370,10 +424,14 @@ export class StepExecutor {
   }
 
   /** 执行图像识别点击 — 截图 → VLM 定位元素 → 点击 */
-  private async executeVisionClick(data: Record<string, any>, serial: string): Promise<void> {
+  private async executeVisionClick(data: Record<string, any>, serial: string, context?: ExecutionContext): Promise<void> {
     const target = String(data.target || '')
     if (!target) {
       throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '目标描述不能为空')
+    }
+
+    if (context?.cancelCheck?.()) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '执行已取消')
     }
 
     console.log(`[StepExecutor]   ▶ 图像识别点击: "${target}"`)
@@ -381,6 +439,10 @@ export class StepExecutor {
     // 1. 截图
     const screenshot = await captureScreenshot(serial)
     const { originalWidth, originalHeight } = screenshot
+
+    if (context?.cancelCheck?.()) {
+      throw new ScriptEngineError(ErrorCode.STEP_TYPE_INVALID, '执行已取消')
+    }
 
     // 2. 调用 VLM 定位元素（归一化坐标）
     const vlmPrompt = `在屏幕截图中找到"${target}"的位置。只返回JSON：如果找到返回{"found":true,"x":归一化X,"y":归一化Y}（归一化坐标范围0~1，x=0是左边缘，y=0是上边缘），否则返回{"found":false}。不要解释。`
